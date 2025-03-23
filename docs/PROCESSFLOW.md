@@ -2,7 +2,7 @@
 layout: default
 title: Process Flow
 nav_order: 2
-permalink: /
+permalink: /processflow
 ---
 
 # Process Flow
