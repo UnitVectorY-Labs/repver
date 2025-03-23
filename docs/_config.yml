@@ -1,0 +1,24 @@
+title: repver
+description: "Automate repetitive project updates and Git operations when updating simple strings like version numbers across multiple files concurrently."
+
+remote_theme: just-the-docs/just-the-docs@v0.10.1
+plugins:
+  - jekyll-remote-theme
+
+mermaid:
+  # Version of mermaid library
+  # Pick an available version from https://cdn.jsdelivr.net/npm/mermaid/
+  version: "11.4.1"
+
+# External navigation links
+nav_external_links:
+  - title: repver on GitHub
+    url: https://github.com/UnitVectorY-Labs/repver
+
+# Footer "Edit this page on GitHub" link text
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub."
+gh_edit_repository: "https://github.com/UnitVectorY-Labs/repver"
+gh_edit_branch: "main"
+gh_edit_source: "docs"
+gh_edit_view_mode: "tree"
