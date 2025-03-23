@@ -112,17 +112,17 @@ func main() {
 	newBranchName := ""
 	if useGit {
 		// Process: Get the current branch name
-		originalBranchName, err := repver.GetCurrentBranch()
+		originalBranchName, err = repver.GetCurrentBranch()
 		if err != nil {
 			// This error isn't in the flowchart because we previously checked we are in a git repo
 			printErrorAndExit(504, "Internal error could not get current branch name")
 		}
 
 		// Decision: Create new branch?
-		newBranchName := originalBranchName
+		newBranchName = originalBranchName
 		if command.GitOptions.CreateBranch {
 			newBranchName = command.GitOptions.BuildBranchName(argumentValues)
-			
+
 			// Decision: Branch already exists?
 			branchExists, err := repver.BranchExists(newBranchName)
 			if err != nil {
@@ -131,7 +131,7 @@ func main() {
 			if branchExists {
 				printErrorAndExit(200, fmt.Sprintf("Branch '%s' already exists", newBranchName))
 			}
-			
+
 			err = repver.CreateAndSwitchBranch(newBranchName)
 			// Decision: Branch creation successful?
 			if err != nil {
