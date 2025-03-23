@@ -1,0 +1,7 @@
+commands:
+ - name: "goversion"
+   targets:
+   - path: "go.mod"
+     pattern: "^go (?P<version>.*) // GOVERSION$"
+   - path: ".github/workflows/build-go.yml"
+     pattern: "^          go-version: '(?P<version>.*)' # GOVERSION$"
