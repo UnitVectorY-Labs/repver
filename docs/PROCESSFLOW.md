@@ -85,11 +85,16 @@ flowchart TD
     DGitOptionsSpecified -- No --> DHasTargets{Has targets to update?}
     
     PGetCurrentBranch --> DCreateBranch{Create new branch?}
-    DCreateBranch -- Yes --> PCreateBranch[Create and switch to new branch]
+    DCreateBranch -- Yes --> PBuildBranchName[Build branch name]
     DCreateBranch -- No --> DHasTargets
     
+    PBuildBranchName --> DBranchExists{Branch already exists?}
+    DBranchExists -- Yes --> EBranchExists[Error 200<br>Branch already exists]
+    EBranchExists --> EndBranchExists((End))
+    DBranchExists -- No --> PCreateBranch[Create and switch to new branch]
+    
     PCreateBranch --> DBranchCreated{Branch creation successful?}
-    DBranchCreated -- No --> ECreateBranchFailed[Error 200<br>Failed to create new branch]
+    DBranchCreated -- No --> ECreateBranchFailed[Error 201<br>Failed to create new branch]
     ECreateBranchFailed --> EndCreateBranchFailed((End))
     DBranchCreated -- Yes --> DHasTargets
     
@@ -97,7 +102,7 @@ flowchart TD
     DHasTargets -- No --> DCommitChanges{Commit changes to git?}
     
     PExecuteTarget --> DExecutionSuccess{Execution successful?}
-    DExecutionSuccess -- No --> EExecutionFailed[Error 201<br>Failed to execute command on target]
+    DExecutionSuccess -- No --> EExecutionFailed[Error 202<br>Failed to execute command on target]
     EExecutionFailed --> EndExecutionFailed((End))
     DExecutionSuccess -- Yes --> DHasMoreTargets{More targets?}
     DHasMoreTargets -- Yes --> PExecuteTarget
@@ -131,10 +136,10 @@ flowchart TD
     
     %% Apply styles
     class ExecPhase startStyle;
-    class EndCreateBranchFailed,EndExecutionFailed endStyle;
+    class EndBranchExists,EndCreateBranchFailed,EndExecutionFailed endStyle;
     class EndSuccess successEndStyle;
-    class PGetCurrentBranch,PCreateBranch,PExecuteTarget,PConstructCommitMsg,PCommitChanges,PPushChanges,PSwitchBranch,PDeleteBranch processStyle;
-    class DGitOptionsSpecified,DCreateBranch,DBranchCreated,DHasTargets,DExecutionSuccess,DHasMoreTargets,DCommitChanges,DPushChanges,DReturnToOriginal,DDeleteBranch decisionStyle;
+    class PGetCurrentBranch,PBuildBranchName,PCreateBranch,PExecuteTarget,PConstructCommitMsg,PCommitChanges,PPushChanges,PSwitchBranch,PDeleteBranch processStyle;
+    class DGitOptionsSpecified,DCreateBranch,DBranchExists,DBranchCreated,DHasTargets,DExecutionSuccess,DHasMoreTargets,DCommitChanges,DPushChanges,DReturnToOriginal,DDeleteBranch decisionStyle;
 ```
 
 ## Error Codes
@@ -149,8 +154,9 @@ flowchart TD
 | 105  | Missing required parameters         |
 | 106  | Not in git repository               |
 | 107  | Git workspace not clean             |
-| 200  | Failed to create new branch         |
-| 201  | Failed to execute command on target |
+| 200  | Branch already exists               |
+| 201  | Failed to create new branch         |
+| 202  | Failed to execute command on target |
 
 ## Internal Errors
 

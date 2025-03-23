@@ -34,6 +34,20 @@ func IsGitRoot() (bool, error) {
 	return cwd == gitRoot, nil
 }
 
+// Test if a proviced branch name already exists using `git show-ref --verify --quiet refs/heads/<branch-name>`
+func BranchExists(branchName string) (bool, error) {
+	cmd := exec.Command("git", "show-ref", "--verify", "--quiet", "refs/heads/"+branchName)
+	err := cmd.Run()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+			// Branch does not exist
+			return false, nil
+		}
+		return false, fmt.Errorf("error checking branch existence: %w", err)
+	}
+	return true, nil
+}
+
 func GetCurrentBranch() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	output, err := cmd.Output()

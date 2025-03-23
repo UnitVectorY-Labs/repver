@@ -122,10 +122,20 @@ func main() {
 		newBranchName := originalBranchName
 		if command.GitOptions.CreateBranch {
 			newBranchName = command.GitOptions.BuildBranchName(argumentValues)
+			
+			// Decision: Branch already exists?
+			branchExists, err := repver.BranchExists(newBranchName)
+			if err != nil {
+				printErrorAndExit(503, "Internal error checking if branch exists")
+			}
+			if branchExists {
+				printErrorAndExit(200, fmt.Sprintf("Branch '%s' already exists", newBranchName))
+			}
+			
 			err = repver.CreateAndSwitchBranch(newBranchName)
 			// Decision: Branch creation successful?
 			if err != nil {
-				printErrorAndExit(200, "Failed to create new branch")
+				printErrorAndExit(201, "Failed to create new branch")
 			}
 		}
 	}
@@ -140,7 +150,7 @@ func main() {
 
 		// Decision: Execution successful?
 		if err != nil {
-			printErrorAndExit(201, "Failed to execute command on target")
+			printErrorAndExit(202, "Failed to execute command on target")
 		}
 
 		repver.Debugln("Command executed successfully for target: %s", target.Path)
