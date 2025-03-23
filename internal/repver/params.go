@@ -8,7 +8,7 @@ import (
 
 var Debug bool
 
-var Command string
+var UserCommand string
 
 // Func load command line parameters to bool
 func ParseParams() {
@@ -18,7 +18,7 @@ func ParseParams() {
 	flag.Parse()
 
 	Debug = *debug
-	Command = *command
+	UserCommand = *command
 }
 
 func Debugln(format string, args ...interface{}) {
