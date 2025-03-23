@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/UnitVectorY-Labs/repver/internal/repver"
 )
@@ -52,8 +54,9 @@ func main() {
 
 	// Decision: Command specified?
 	if repver.UserCommand == "" {
-		// TODO: Print out additional help
-		printErrorAndExit(103, "No command specified")
+		// Generate help message listing all available commands with their parameters
+		helpMessage := generateHelpMessage(config)
+		printErrorAndExit(103, "No command specified", helpMessage)
 	}
 
 	// Process: Retrieve command configuration
@@ -61,8 +64,8 @@ func main() {
 
 	// Decision: Command found?
 	if err != nil {
-		// TODO: Print out additional help
-		printErrorAndExit(104, "No command found")
+		helpMessage := generateHelpMessage(config)
+		printErrorAndExit(104, "Command not found", helpMessage)
 	}
 
 	// Process: Identify required arguments for command]
@@ -75,14 +78,32 @@ func main() {
 
 	// Decision: All params provided?
 	argumentValues := make(map[string]string)
+	missingParams := []string{}
 	for _, parameter := range parameters {
 		// Check if the parameter is set
 		if val, ok := argumentFlags[parameter]; ok && *val != "" {
 			argumentValues[parameter] = *val
 		} else {
-			// TODO: Print out additional help listing the missing parameters
-			printErrorAndExit(105, "Missing required parameters")
+			missingParams = append(missingParams, parameter)
 		}
+	}
+
+	if len(missingParams) > 0 {
+		// Create a targeted help message for the specific command
+		var helpBuilder strings.Builder
+		helpBuilder.WriteString(fmt.Sprintf("Command '%s' requires the following parameters:\n", repver.UserCommand))
+
+		for _, param := range missingParams {
+			helpBuilder.WriteString(fmt.Sprintf("  --param.%s=<value>\n", param))
+		}
+
+		helpBuilder.WriteString("\nComplete usage example:\n")
+		helpBuilder.WriteString(fmt.Sprintf("  repver --command=%s", repver.UserCommand))
+		for _, param := range parameters {
+			helpBuilder.WriteString(fmt.Sprintf(" --param.%s=<value>", param))
+		}
+
+		printErrorAndExit(105, "Missing required parameters", helpBuilder.String())
 	}
 
 	// Decision: Git options specified?
@@ -215,7 +236,79 @@ func main() {
 	}
 }
 
-func printErrorAndExit(errNum int, errMsg string) {
+// generateHelpMessage creates a formatted help message showing all available commands
+// and their required parameters from the configuration
+func generateHelpMessage(config *repver.RepverConfig) string {
+	var help strings.Builder
+
+	help.WriteString("USAGE:\n")
+	help.WriteString("  repver --command=<command_name> [--param.<name>=<value> ...]\n\n")
+
+	help.WriteString("AVAILABLE COMMANDS:\n")
+
+	if len(config.Commands) == 0 {
+		help.WriteString("  No commands defined in .repver configuration\n")
+		return help.String()
+	}
+
+	// Get the longest command name for proper padding
+	maxNameLen := 0
+	for _, cmd := range config.Commands {
+		if len(cmd.Name) > maxNameLen {
+			maxNameLen = len(cmd.Name)
+		}
+	}
+
+	// Sort the commands alphabetically for easier reading
+	cmdNames := make([]string, 0, len(config.Commands))
+	cmdMap := make(map[string]*repver.RepverCommand)
+	for i, cmd := range config.Commands {
+		cmdNames = append(cmdNames, cmd.Name)
+		cmdMap[cmd.Name] = &config.Commands[i]
+	}
+	sort.Strings(cmdNames)
+
+	// Print each command with its parameters
+	for _, name := range cmdNames {
+		cmd := cmdMap[name]
+
+		// Get parameters for this command
+		params, err := cmd.GetParameterNames()
+		if err != nil {
+			continue // Skip if we can't get parameters
+		}
+
+		// Format command name with padding
+		padding := strings.Repeat(" ", maxNameLen-len(name)+2)
+		help.WriteString(fmt.Sprintf("  %s%s", name, padding))
+
+		// Include example usage
+		if len(params) > 0 {
+			paramList := strings.Join(params, ", ")
+			help.WriteString(fmt.Sprintf("Parameters: [%s]\n", paramList))
+
+			// Add complete example
+			help.WriteString(fmt.Sprintf("    Example: repver --command=%s", name))
+			for _, param := range params {
+				help.WriteString(fmt.Sprintf(" --param.%s=<value>", param))
+			}
+			help.WriteString("\n\n")
+		} else {
+			help.WriteString("No parameters required\n")
+			help.WriteString(fmt.Sprintf("    Example: repver --command=%s\n\n", name))
+		}
+	}
+
+	help.WriteString("FLAGS:\n")
+	help.WriteString("  --debug    Enable debug output\n")
+
+	return help.String()
+}
+
+func printErrorAndExit(errNum int, errMsg string, helpMsg ...string) {
 	fmt.Fprintf(os.Stderr, "Error (%d): %s\n", errNum, errMsg)
+	if len(helpMsg) > 0 && helpMsg[0] != "" {
+		fmt.Fprintln(os.Stderr, "\n"+helpMsg[0])
+	}
 	os.Exit(errNum)
 }
