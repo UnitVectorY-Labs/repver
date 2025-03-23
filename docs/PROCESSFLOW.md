@@ -36,15 +36,21 @@ flowchart TD
     ENoCommand --> EndNoCommand((End))
     
     PGetCommand --> DCommandFound{Command found?}
-    DCommandFound -- Yes --> PVerifyParams[Verify required parameters provided]
+    DCommandFound -- Yes --> PVerifyParams[Identify required arguments for command]
     DCommandFound -- No --> ECommandNotFound[Error 104<br>Command not found]
     ECommandNotFound --> EndCommandNotFound((End))
     
     PVerifyParams --> DParamsProvided{All params provided?}
     DParamsProvided -- No --> EMissingParams[Error 105<br>Missing required parameters]
     EMissingParams --> EndMissingParams((End))
-    DParamsProvided -- Yes --> ExecPhase[Execution Phase]
+    DParamsProvided -- Yes --> DGitOptionsProvided{Git options provided?}
+
+    DGitOptionsProvided -- Yes --> DInGitRepo{In git repo?}
+    DGitOptionsProvided -- No --> ExecPhase[Execution Phase]
     
+    DInGitRepo -- No --> ENoGitRepo[Error 106<br>Not in git repository]
+    ENoGitRepo --> EndNoGitRepo((End))
+    DInGitRepo -- Yes --> ExecPhase
     
     %% Style definitions
     classDef startStyle fill:#d9f99d;
@@ -54,7 +60,7 @@ flowchart TD
     
     %% Apply styles
     class Start startStyle;
-    class EndNoConfig,EndLoadFailed,EndValidateFailed,EndNoCommand,EndCommandNotFound,EndMissingParams endStyle;
+    class EndNoConfig,EndLoadFailed,EndValidateFailed,EndNoCommand,EndCommandNotFound,EndMissingParams,EndNoGitRepo endStyle;
     class PLoadConfig,PValidateConfig,PCommandArgs,PParseFlags,PGetCommand,PVerifyParams,ExecPhase processStyle;
-    class DConfigExists,DLoadSuccess,DValidateSuccess,DCommandSpecified,DCommandFound,DParamsProvided decisionStyle;
+    class DConfigExists,DLoadSuccess,DValidateSuccess,DCommandSpecified,DCommandFound,DParamsProvided,DGitOptionsProvided,DInGitRepo decisionStyle;
 ```

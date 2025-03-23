@@ -1,9 +1,38 @@
 package repver
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 )
+
+// IsGitRoot returns true if the current directory is the root of a Git repository.
+func IsGitRoot() (bool, error) {
+	// Get the current working directory.
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+
+	// Execute the Git command to get the root directory of the repository.
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	// Suppress any error output by directing stderr to nil.
+	cmd.Stderr = nil
+	if err := cmd.Run(); err != nil {
+		// If the command fails, it's likely that we are not in a Git repository.
+		return false, nil
+	}
+
+	// Trim any trailing newline or spaces from the output.
+	gitRoot := strings.TrimSpace(out.String())
+
+	// Compare the Git root with the current working directory.
+	return cwd == gitRoot, nil
+}
 
 func GetCurrentBranch() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")

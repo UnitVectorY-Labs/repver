@@ -11,6 +11,8 @@ import (
 // Main function returns hello world
 func main() {
 
+	// Initilization Phase
+
 	// Decision: .repver exists?
 	if _, err := os.Stat(".repver"); os.IsNotExist(err) {
 		printErrorAndExit(100, ".repver file not found")
@@ -40,9 +42,9 @@ func main() {
 		printErrorAndExit(501, "Internal error compiling prevalidated parameters")
 	}
 
-	argumentValues := make(map[string]*string)
+	argumentFlags := make(map[string]*string)
 	for _, argumentName := range argumentNames {
-		argumentValues[argumentName] = flag.String("param."+argumentName, "", "Value for "+argumentName)
+		argumentFlags[argumentName] = flag.String("param."+argumentName, "", "Value for "+argumentName)
 	}
 
 	// Process: Parse command line arguments
@@ -56,30 +58,47 @@ func main() {
 
 	// Process: Retrieve command configuration
 	command, err := config.GetCommand(repver.UserCommand)
+
+	// Decision: Command found?
 	if err != nil {
 		// TODO: Print out additional help
 		printErrorAndExit(104, "No command found")
 	}
 
+	// Process: Identify required arguments for command]
 	parameters, err := command.GetParameterNames()
 	if err != nil {
-		// Error getting parameter names, print error and exit
-		fmt.Fprintln(os.Stderr, "Error getting parameter names:", err)
-		os.Exit(1)
+		// This error is not on the flowchart because the previous validate step
+		// should prevent this from ever happening
+		printErrorAndExit(502, "Internal error compiling prevalidated parameters")
 	}
 
-	// Create a map for named capture group replacements
-	values := make(map[string]string)
-	for _, param := range parameters {
+	// Decision: All params provided?
+	argumentValues := make(map[string]string)
+	for _, parameter := range parameters {
 		// Check if the parameter is set
-		if val, ok := argumentValues[param]; ok && *val != "" {
-			values[param] = *val
+		if val, ok := argumentFlags[parameter]; ok && *val != "" {
+			argumentValues[parameter] = *val
 		} else {
-			// If the parameter is not set, return an error
-			fmt.Fprintf(os.Stderr, "Error: Parameter %s is required\n", param)
-			os.Exit(1)
+			// TODO: Print out additional help listing the missing parameters
+			printErrorAndExit(105, "Missing required parameters")
 		}
 	}
+
+	// Decision: Git options specified?
+	if command.GitOptions.GitOptionsSpecified() {
+		// Decision: In git root?
+		isGitRoot, err := repver.IsGitRoot()
+		if err != nil {
+			// This error isn't in the flowchart because the failure here is
+			printErrorAndExit(503, "Internal error determining git root")
+		}
+		if !isGitRoot {
+			printErrorAndExit(106, "Not in git repository")
+		}
+	}
+
+	// Execution Phase
 
 	// Get the original branch name
 	originalBranch, err := repver.GetCurrentBranch()
@@ -92,7 +111,7 @@ func main() {
 	// Check if we are switching branches
 	branchName := originalBranch
 	if command.GitOptions.CreateBranch {
-		branchName = command.GitOptions.BuildBranchName(values)
+		branchName = command.GitOptions.BuildBranchName(argumentValues)
 		err = repver.CreateAndSwitchBranch(branchName)
 		if err != nil {
 			// Error creating and switching branch, print error and exit
@@ -106,7 +125,7 @@ func main() {
 	// Loop through the targets and execute
 	for _, target := range command.Targets {
 		// execute the command
-		err = target.Execute(values)
+		err = target.Execute(argumentValues)
 		if err != nil {
 			// Error executing command, print error and exit
 			fmt.Fprintln(os.Stderr, "Error executing command:", err)
@@ -120,7 +139,7 @@ func main() {
 
 	// Check if we need to commit the changes
 	if command.GitOptions.Commit {
-		commitMessage := command.GitOptions.BuildCommitMessage(values)
+		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
 		err = repver.AddAndCommitFiles(commitFiles, commitMessage)
 		if err != nil {
 			// Error committing changes, print error and exit

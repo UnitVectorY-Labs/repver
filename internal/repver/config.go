@@ -128,3 +128,7 @@ func (g *RepverGit) BuildCommitMessage(vals map[string]string) string {
 
 	return commitMessage
 }
+
+func (g *RepverGit) GitOptionsSpecified() bool {
+	return g.CreateBranch || g.DeleteBranch || g.Commit || g.Push || g.ReturnToOriginalBranch
+}
