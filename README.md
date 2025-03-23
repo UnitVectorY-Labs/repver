@@ -6,14 +6,15 @@ Automate repetitive project updates and Git operations when updating simple stri
 
 ## Why repver?
 
-Sometimes, you need to update multiple files in a project with the same string, like a version number. This can be tedious and error-prone if done manually.
+Sometimes, you need to update multiple files in a project with the same string, like a version number. This can be tedious and error-prone if done manually.  Using `repver`, an abbreviation for "replace version", you can automate this process, making it easier to manage and reducing the risk of human error. This includes a workflow that could look like:
 
-- Create a new branch
-- Update the first file with the new version number, located in one place in the file
-- Update the next file with the new version number, located in a different place in that file
-- Commit the changes
-- Push the branch
-- Create a pull request
+- Creating a new branch for the change
+- Updating multiple files replacing a string with the updated version (using regex on a line-by-line basis)
+- Committing the changes
+- Pushing the branch to the remote repository
+- Switching back to the original branch
+- Deleting the local branch
+- (Right now repver won't automatically create a pull request, but it could in the future)
 
 But wait, isn't Dependabot already doing this for you? Yes, but it will only work for the dependencies that it manages. If you have version numbers in places like documentation, Dockerfiles, or other files, you’ll need to update those manually.
 
