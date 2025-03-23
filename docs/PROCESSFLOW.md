@@ -57,7 +57,11 @@ flowchart TD
     
     DInGitRepo -- No --> ENoGitRepo[Error 106<br>Not in git repository]
     ENoGitRepo --> EndNoGitRepo((End))
-    DInGitRepo -- Yes --> ExecPhase
+    DInGitRepo -- Yes --> DGitClean{Git workspace clean?}
+    
+    DGitClean -- No --> EGitNotClean[Error 107<br>Git workspace not clean]
+    EGitNotClean --> EndGitNotClean((End))
+    DGitClean -- Yes --> ExecPhase
     
     %% Style definitions
     classDef startStyle fill:#d9f99d;
@@ -67,9 +71,9 @@ flowchart TD
     
     %% Apply styles
     class Start startStyle;
-    class EndNoConfig,EndLoadFailed,EndValidateFailed,EndNoCommand,EndCommandNotFound,EndMissingParams,EndNoGitRepo endStyle;
+    class EndNoConfig,EndLoadFailed,EndValidateFailed,EndNoCommand,EndCommandNotFound,EndMissingParams,EndNoGitRepo,EndGitNotClean endStyle;
     class PLoadConfig,PValidateConfig,PCommandArgs,PParseFlags,PGetCommand,PVerifyParams,ExecPhase processStyle;
-    class DConfigExists,DLoadSuccess,DValidateSuccess,DCommandSpecified,DCommandFound,DParamsProvided,DGitOptionsProvided,DInGitRepo decisionStyle;
+    class DConfigExists,DLoadSuccess,DValidateSuccess,DCommandSpecified,DCommandFound,DParamsProvided,DGitOptionsProvided,DInGitRepo,DGitClean decisionStyle;
 ```
 
 ## Execution Phase
@@ -135,15 +139,18 @@ flowchart TD
 
 ## Error Codes
 
-| Code | Error                       |
-|------|-----------------------------|
-| 100  | .repver file not found      |
-| 101  | .repver failed to load      |
-| 102  | .repver validation failed   |
-| 103  | No command specified        |
-| 104  | Command not found           |
-| 105  | Missing required parameters |
-| 106  | Not in git repository       |
+| Code | Error                               |
+|------|-------------------------------------|
+| 100  | .repver file not found              |
+| 101  | .repver failed to load              |
+| 102  | .repver validation failed           |
+| 103  | No command specified                |
+| 104  | Command not found                   |
+| 105  | Missing required parameters         |
+| 106  | Not in git repository               |
+| 107  | Git workspace not clean             |
+| 200  | Failed to create new branch         |
+| 201  | Failed to execute command on target |
 
 ## Internal Errors
 

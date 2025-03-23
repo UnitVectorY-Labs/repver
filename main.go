@@ -97,6 +97,12 @@ func main() {
 		if !isGitRoot {
 			printErrorAndExit(106, "Not in git repository")
 		}
+
+		// Decision: Git workspace clean?
+		err = repver.CheckGitClean()
+		if err != nil {
+			printErrorAndExit(107, "Git workspace not clean")
+		}
 	}
 
 	// Execution Phase
