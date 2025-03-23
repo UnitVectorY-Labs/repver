@@ -3,6 +3,7 @@ package repver
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 type RepverConfig struct {
@@ -15,6 +16,27 @@ type RepverCommand struct {
 	Name string `yaml:"name"`
 	// Array of targets
 	Targets []RepverTarget `yaml:"targets"`
+	// Git command options
+	GitOptions RepverGit `yaml:"git"`
+}
+
+type RepverGit struct {
+	// Whether to create a new branch
+	CreateBranch bool `yaml:"create_branch"`
+	// Whether to delete the new branch after the command is executed (must be set to return to original branch)
+	DeleteBranch bool `yaml:"delete_branch"`
+	// New branch name
+	BranchName string `yaml:"branch_name"`
+	// Commit
+	Commit bool `yaml:"commit"`
+	// Commit message
+	CommitMessage string `yaml:"commit_message"`
+	// Whether to push changes
+	Push bool `yaml:"push"`
+	// The remote to push to
+	Remote string `yaml:"remote"`
+	// return to the original branch after the command is executed
+	ReturnToOriginalBranch bool `yaml:"return_to_original_branch"`
 }
 
 type RepverTarget struct {
@@ -87,4 +109,22 @@ func (t *RepverTarget) GetParameterNames() ([]string, error) {
 		}
 	}
 	return captureGroups, nil
+}
+
+func (g *RepverGit) BuildBranchName(vals map[string]string) string {
+	branchName := g.BranchName
+	for key, val := range vals {
+		branchName = strings.ReplaceAll(branchName, "{{"+key+"}}", val)
+	}
+
+	return branchName
+}
+
+func (g *RepverGit) BuildCommitMessage(vals map[string]string) string {
+	commitMessage := g.CommitMessage
+	for key, val := range vals {
+		commitMessage = strings.ReplaceAll(commitMessage, "{{"+key+"}}", val)
+	}
+
+	return commitMessage
 }

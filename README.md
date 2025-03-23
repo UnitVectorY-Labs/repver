@@ -33,12 +33,29 @@ commands:
      pattern: "^go (?P<version>.*) // GOVERSION$"
    - path: ".github/workflows/build-go.yml"
      pattern: "^          go-version: '(?P<version>.*)' # GOVERSION$"
-
+   git:
+     create_branch: true
+     branch_name : "go-v{{version}}"
+     commit: true
+     commit_message: "Update Go version to {{version}}"
+     push: true
+     remote: "origin"
+     return_to_original_branch: true
+     delete_branch: true
 ```
 
 The `path` attribute will specify the file to update within the repository.
 
 The `pattern` attribute specifies a regex pattern that is used to identify a single line in a file. It must contain at least one capture group, and all capture groups must be named. These capture group names can then be specified as values in the command to substitute these values in the file.
+
+The `git` configuration allows for the application to run local git commands to further automate the process.  This includes:
+  - Creating a new branch with `create_branch` whose name can be specified with `branch_name`.
+  - Automatically committing the changes with `commit` and a commit message specified with `commit_message`.
+  - Pushing the branch to the remote repository with `push` and specifying the remote with `remote`.
+  - Returning to the original branch with `return_to_original_branch`.
+  - Deleting the branch with `delete_branch` after the changes have been pushed.
+
+The `branch_name` and `commit_message` attributes can use the capture group names from the `pattern` attribute to create a dynamic branch name and commit message. For example, if the capture group name is `version`, you can use `{{version}}` in the branch name or commit message to substitute the value of that capture group.
 
 ## Command
 
