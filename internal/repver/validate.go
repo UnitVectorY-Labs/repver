@@ -39,6 +39,40 @@ func (c *RepverCommand) Validate() error {
 			return err
 		}
 	}
+
+	// Check if the git options are valid if any are specified
+	if c.GitOptions.GitOptionsSpecified() {
+		if err := c.GitOptions.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Validate  validates the RepverGit structure
+func (g *RepverGit) Validate() error {
+
+	if g.DeleteBranch && !g.CreateBranch {
+		return fmt.Errorf("delete_branch can only be set if create_branch is set")
+	}
+
+	if g.CreateBranch && g.BranchName == "" {
+		return fmt.Errorf("branch_name must be set if create_branch is set")
+	}
+
+	if g.Commit && g.CommitMessage == "" {
+		return fmt.Errorf("commit_message must be set if commit is set")
+	}
+
+	if g.Push && g.Remote == "" {
+		return fmt.Errorf("remote must be set if push is set")
+	}
+
+	if g.ReturnToOriginalBranch && !g.CreateBranch {
+		return fmt.Errorf("return_to_original_branch can only be set if create_branch is set")
+	}
+
 	return nil
 }
 

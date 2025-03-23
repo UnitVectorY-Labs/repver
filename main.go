@@ -86,7 +86,8 @@ func main() {
 	}
 
 	// Decision: Git options specified?
-	if command.GitOptions.GitOptionsSpecified() {
+	useGit := command.GitOptions.GitOptionsSpecified()
+	if useGit {
 		// Decision: In git root?
 		isGitRoot, err := repver.IsGitRoot()
 		if err != nil {
@@ -100,90 +101,100 @@ func main() {
 
 	// Execution Phase
 
-	// Get the original branch name
-	originalBranch, err := repver.GetCurrentBranch()
-	if err != nil {
-		// Error getting current branch, print error and exit
-		fmt.Fprintln(os.Stderr, "Error getting current branch:", err)
-		os.Exit(1)
-	}
-
-	// Check if we are switching branches
-	branchName := originalBranch
-	if command.GitOptions.CreateBranch {
-		branchName = command.GitOptions.BuildBranchName(argumentValues)
-		err = repver.CreateAndSwitchBranch(branchName)
+	// Decision: Git options specified?
+	originalBranchName := ""
+	newBranchName := ""
+	if useGit {
+		// Process: Get the current branch name
+		originalBranchName, err := repver.GetCurrentBranch()
 		if err != nil {
-			// Error creating and switching branch, print error and exit
-			fmt.Fprintln(os.Stderr, "Error creating and switching branch:", err)
-			os.Exit(1)
+			// This error isn't in the flowchart because we previously checked we are in a git repo
+			printErrorAndExit(504, "Internal error could not get current branch name")
+		}
+
+		// Decision: Create new branch?
+		newBranchName := originalBranchName
+		if command.GitOptions.CreateBranch {
+			newBranchName = command.GitOptions.BuildBranchName(argumentValues)
+			err = repver.CreateAndSwitchBranch(newBranchName)
+			// Decision: Branch creation successful?
+			if err != nil {
+				printErrorAndExit(200, "Failed to create new branch")
+			}
 		}
 	}
 
 	commitFiles := []string{}
 
-	// Loop through the targets and execute
+	// Decision: Has target to update?
 	for _, target := range command.Targets {
-		// execute the command
-		err = target.Execute(argumentValues)
-		if err != nil {
-			// Error executing command, print error and exit
-			fmt.Fprintln(os.Stderr, "Error executing command:", err)
-			os.Exit(1)
-		}
-		fmt.Printf("Command executed successfully for target: %s\n", target.Path)
 
-		// Add the target path to the commit files
+		// Process: Execute update to target
+		err = target.Execute(argumentValues)
+
+		// Decision: Execution successful?
+		if err != nil {
+			printErrorAndExit(201, "Failed to execute command on target")
+		}
+
+		repver.Debugln("Command executed successfully for target: %s", target.Path)
 		commitFiles = append(commitFiles, target.Path)
 	}
 
-	// Check if we need to commit the changes
+	// Decision: Commit changes to git?
 	if command.GitOptions.Commit {
+		// Process: Construct commit message
 		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
+
+		// Process: Commit changes to git
 		err = repver.AddAndCommitFiles(commitFiles, commitMessage)
 		if err != nil {
-			// Error committing changes, print error and exit
-			fmt.Fprintln(os.Stderr, "Error committing changes:", err)
-			os.Exit(1)
+			// This error isn't in the flowchart because we previously checked we are in a git repo
+			printErrorAndExit(505, "Internal error could not add and commit files")
 		}
-		fmt.Println("Changes committed successfully")
 
-		// Check if we need to push the changes
-		if command.GitOptions.Push && branchName != "" {
+		repver.Debugln("Changes committed successfully")
+
+		// Decision: Push changes to remote?
+		if command.GitOptions.Push && newBranchName != "" {
 			remote := command.GitOptions.Remote
 			if remote == "" {
 				remote = "origin"
 			}
 
-			err = repver.PushChanges(remote, branchName)
+			// Process: Push changes to remote
+			err = repver.PushChanges(remote, newBranchName)
 			if err != nil {
-				// Error pushing changes, print error and exit
-				fmt.Fprintln(os.Stderr, "Error pushing changes:", err)
-				os.Exit(1)
+				// This error isn't in the flowchart because we previously checked we are in a git repo
+				printErrorAndExit(506, "Internal error failed to push changes")
 			}
-			fmt.Println("Changes pushed successfully")
+
+			repver.Debugln("Changes pushed successfully")
 		}
 	}
 
-	// Check if we need to return to the original branch
+	// Decision: Return to original branch?
 	if command.GitOptions.ReturnToOriginalBranch {
-		err = repver.SwitchBranch(originalBranch)
+		// Process: Switch back to original branch
+		err = repver.SwitchBranch(originalBranchName)
 		if err != nil {
-			// Error switching back to original branch, print error and exit
-			fmt.Fprintln(os.Stderr, "Error switching back to original branch:", err)
-			os.Exit(1)
+			// This error isn't in the flowchart because we previously checked we are in a git repo
+			printErrorAndExit(507, "Internal error failed to switch back to original branch")
 		}
-		fmt.Println("Returned to original branch successfully")
 
-		// Check if we need to delete the branch
+		repver.Debugln("Returned to original branch successfully")
+
+		// Decision: Delete new branch?
 		if command.GitOptions.DeleteBranch && command.GitOptions.CreateBranch {
-			err = repver.DeleteLocalBranch(branchName)
+
+			// Process: Delete new branch
+			err = repver.DeleteLocalBranch(newBranchName)
 			if err != nil {
-				// Error deleting branch, print error and exit
-				fmt.Fprintln(os.Stderr, "Error deleting branch:", err)
-				os.Exit(1)
+				// This error isn't in the flowchart because we previously checked we are in a git repo
+				printErrorAndExit(508, "Internal error failed to delete new branch")
 			}
-			fmt.Println("Deleted branch successfully")
+
+			repver.Debugln("Deleted branch successfully")
 		}
 	}
 }
