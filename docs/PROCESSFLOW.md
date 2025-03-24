@@ -116,7 +116,11 @@ flowchart TD
     
     DPushChanges -- Yes --> PPushChanges[Push changes to remote]
     DPushChanges -- No --> DReturnToOriginal
-    PPushChanges --> DReturnToOriginal
+    PPushChanges --> DCreatePR{Create pull request?}
+    
+    DCreatePR -- No --> DReturnToOriginal
+    DCreatePR -- GITHUB_CLI --> PCreatePR[Create GitHub Pull request]
+    PCreatePR --> DReturnToOriginal
     
     DReturnToOriginal -- Yes --> PSwitchBranch[Switch back to original branch]
     DReturnToOriginal -- No --> EndSuccess((End))
@@ -138,8 +142,8 @@ flowchart TD
     class ExecPhase startStyle;
     class EndBranchExists,EndCreateBranchFailed,EndExecutionFailed endStyle;
     class EndSuccess successEndStyle;
-    class PGetCurrentBranch,PBuildBranchName,PCreateBranch,PExecuteTarget,PConstructCommitMsg,PCommitChanges,PPushChanges,PSwitchBranch,PDeleteBranch processStyle;
-    class DGitOptionsSpecified,DCreateBranch,DBranchExists,DBranchCreated,DHasTargets,DExecutionSuccess,DHasMoreTargets,DCommitChanges,DPushChanges,DReturnToOriginal,DDeleteBranch decisionStyle;
+    class PGetCurrentBranch,PBuildBranchName,PCreateBranch,PExecuteTarget,PConstructCommitMsg,PCommitChanges,PPushChanges,PSwitchBranch,PDeleteBranch,PCreatePR processStyle;
+    class DGitOptionsSpecified,DCreateBranch,DBranchExists,DBranchCreated,DHasTargets,DExecutionSuccess,DHasMoreTargets,DCommitChanges,DPushChanges,DReturnToOriginal,DDeleteBranch,DCreatePR decisionStyle;
 ```
 
 ## Error Codes
@@ -171,4 +175,5 @@ Internal errors are errors that occur during the execution but are not represent
 | 505  | Internal error could not add and commit files           |
 | 506  | Internal error failed to push changes                   |
 | 507  | Internal error failed to switch back to original branch |
-| 508  | Internal error failed to delete new branch              |
+| 508  | Failed to create GitHub pull request.                   |
+| 509  | Internal error failed to delete new branch              |

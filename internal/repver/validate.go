@@ -78,6 +78,14 @@ func (g *RepverGit) Validate() error {
 		return fmt.Errorf("return_to_original_branch can only be set if create_branch is set")
 	}
 
+	if g.PullRequest == "" {
+		g.PullRequest = "NO"
+	}
+
+	if g.PullRequest != "NO" && g.PullRequest != "GITHUB_CLI" {
+		return fmt.Errorf("invalid pull_request value: %s", g.PullRequest)
+	}
+
 	return nil
 }
 

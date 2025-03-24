@@ -6,19 +6,19 @@ Automate repetitive project updates and Git operations when updating simple stri
 
 ## Why repver?
 
-Sometimes, you need to update multiple files in a project with the same string, like a version number. This can be tedious and error-prone if done manually.  Using `repver`, an abbreviation for "replace version", you can automate this process, making it easier to manage and reducing the risk of human error. This includes a workflow that could look like:
+Sometimes, you need to update multiple files in a project with the same string, like a version number. This can be tedious and error-prone if done manually.  Using `repver`, an abbreviation for "replace version", you can automate this process, making it easier to manage and reducing the risk of human error. This includes a flow that could look like:
 
 - Creating a new branch for the change
 - Updating multiple files by replacing a string with the updated version (using regex on a line-by-line basis)
 - Committing the changes
 - Pushing the branch to the remote repository
+- Creating a pull request on GitHub
 - Switching back to the original branch
 - Deleting the local branch
-- (Right now repver won't automatically create a pull request, but it could in the future)
+
+While it doesn't take long to manually complete these tasks, if you need to do it across multiple reposiotories or multiple files, it can become tedious. The entire process can be automated with a single command to `repver` which will take care of all of those steps for you based on your pre-configured `.repver` file included in your repsitory.
 
 But wait, isn't Dependabot already doing this for you? Yes, but it will only work for the dependencies that it manages. If you have version numbers in places like documentation, Dockerfiles, or other files, you’ll need to update those manually.
-
-This is where `repver` comes in. It automates updating multiple files with the same string—creating a new branch, committing the changes, and pushing them to your remote repository.
 
 ## Configuration
 
@@ -67,3 +67,8 @@ For example, to run the `goversion` command shown above, use:
 ```bash
 repver --command=goversion --param.version=1.24.1
 ```
+
+## Dependencies
+
+- Git commands utilize the git command line commands which must be installed and accessible with appropriate permissions to the repository
+- Creating pull requests with GitHub utilizies the `gh` command line tool, which must be installed and authenticated with your GitHub account

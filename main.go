@@ -230,6 +230,14 @@ func main() {
 			}
 
 			repver.Debugln("Changes pushed successfully")
+
+			// Decision: Create pull request?
+			if command.GitOptions.PullRequest == "GITHUB_CLI" {
+				err = repver.CreateGitHubPullRequest()
+				if err != nil {
+					printErrorAndExit(508, "Failed to create GitHub pull request")
+				}
+			}
 		}
 	} else if command.GitOptions.Commit && repver.DryRun {
 		// In dry run mode, just show what would be committed
@@ -267,7 +275,7 @@ func main() {
 			err = repver.DeleteLocalBranch(newBranchName)
 			if err != nil {
 				// This error isn't in the flowchart because we previously checked we are in a git repo
-				printErrorAndExit(508, "Internal error failed to delete new branch")
+				printErrorAndExit(509, "Internal error failed to delete new branch")
 			}
 
 			repver.Debugln("Deleted branch successfully")

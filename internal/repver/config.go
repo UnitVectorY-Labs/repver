@@ -35,6 +35,8 @@ type RepverGit struct {
 	Push bool `yaml:"push"`
 	// The remote to push to
 	Remote string `yaml:"remote"`
+	// PullRequest enum: NO, GITHUB_CLI
+	PullRequest string `yaml:"pull_request"`
 	// return to the original branch after the command is executed
 	ReturnToOriginalBranch bool `yaml:"return_to_original_branch"`
 }

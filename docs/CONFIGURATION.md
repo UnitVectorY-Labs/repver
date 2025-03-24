@@ -18,6 +18,7 @@ The optional `git` section of the command allows for the application to run loca
 - Creating a new branch with `create_branch` (boolean) whose name must then be specified with `branch_name`. 
 - Automatically committing the changes with `commit` (boolean) and a commit message must then be specified with `commit_message`.
 - Pushing the branch to the remote repository with `push` (boolean) and specifying the remote with `remote` (optional, default to 'origin').
+- A pull request can be created automatically if `pull_request` (enum: `NO`, `GITHUB_CLI`) enum is set.  The `GITHUB_CLI` option will create a pull request using the GitHub `gh` CLI command. This requires `create_branch` and `push` to be set to true.
 - Returning to the original branch with `return_to_original_branch`. This can only be set to true if `create_branch` is set to true.
 - Deleting the branch with `delete_branch` after the changes have been pushed. This can only be set to true if `return_to_original_branch` is also set to true.
 
