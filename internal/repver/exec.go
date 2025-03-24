@@ -50,6 +50,13 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 	lineNum := 0
 	matchesFound := 0
 
+	// Track changes for dry run mode
+	var changes []struct {
+		lineNumber int
+		oldLine    string
+		newLine    string
+	}
+
 	for scanner.Scan() {
 		lineNum++
 		line := scanner.Text()
@@ -95,6 +102,16 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 				}
 
 				Debugln("Execute: Line after replacements: '%s'", modifiedLine)
+
+				// If line was changed, record it for dry run mode
+				if line != modifiedLine {
+					changes = append(changes, struct {
+						lineNumber int
+						oldLine    string
+						newLine    string
+					}{lineNum, line, modifiedLine})
+				}
+
 				modifiedLines = append(modifiedLines, modifiedLine)
 			} else {
 				// If no capture groups, keep the line as is
@@ -131,6 +148,22 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 		Debugln("Execute: No changes were made to the file content")
 	} else {
 		Debugln("Execute: File content was modified")
+	}
+
+	// In dry run mode, output the changes that would be made
+	if DryRun {
+		if len(changes) > 0 {
+			fmt.Printf("File: %s\n", t.Path)
+			for _, change := range changes {
+				fmt.Printf("  Line %d:\n", change.lineNumber)
+				fmt.Printf("    - %s\n", change.oldLine)
+				fmt.Printf("    + %s\n", change.newLine)
+			}
+			return nil
+		} else {
+			fmt.Printf("File: %s (no changes)\n", t.Path)
+			return nil
+		}
 	}
 
 	// Write the modified content back to the file

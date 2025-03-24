@@ -52,6 +52,11 @@ func main() {
 	// Process: Parse command line arguments
 	repver.ParseParams()
 
+	// If dry run mode is enabled, output that information
+	if repver.DryRun {
+		fmt.Println("DRY RUN MODE ENABLED - No files will be modified and no git operations will be performed")
+	}
+
 	// Decision: Command specified?
 	if repver.UserCommand == "" {
 		// Generate help message listing all available commands with their parameters
@@ -108,7 +113,7 @@ func main() {
 
 	// Decision: Git options specified?
 	useGit := command.GitOptions.GitOptionsSpecified()
-	if useGit {
+	if useGit && !repver.DryRun {
 		// Decision: In git root?
 		isGitRoot, err := repver.IsGitRoot()
 		if err != nil {
@@ -124,6 +129,8 @@ func main() {
 		if err != nil {
 			printErrorAndExit(107, "Git workspace not clean")
 		}
+	} else if useGit && repver.DryRun {
+		fmt.Println("Dry Run: Git operations would be performed but are disabled in dry run mode")
 	}
 
 	// Execution Phase
@@ -131,7 +138,7 @@ func main() {
 	// Decision: Git options specified?
 	originalBranchName := ""
 	newBranchName := ""
-	if useGit {
+	if useGit && !repver.DryRun {
 		// Process: Get the current branch name
 		originalBranchName, err = repver.GetCurrentBranch()
 		if err != nil {
@@ -159,6 +166,17 @@ func main() {
 				printErrorAndExit(201, "Failed to create new branch")
 			}
 		}
+	} else if useGit && repver.DryRun && command.GitOptions.CreateBranch {
+		// Process: Get the current branch name
+		originalBranchName, err = repver.GetCurrentBranch()
+		if err != nil {
+			// This error isn't in the flowchart because we previously checked we are in a git repo
+			printErrorAndExit(504, "Internal error could not get current branch name")
+		}
+
+		// In dry run mode, just show what branch would be created
+		newBranchName = command.GitOptions.BuildBranchName(argumentValues)
+		fmt.Printf("Dry Run: Would create and switch to branch: %s\n", newBranchName)
 	}
 
 	commitFiles := []string{}
@@ -179,7 +197,7 @@ func main() {
 	}
 
 	// Decision: Commit changes to git?
-	if command.GitOptions.Commit {
+	if command.GitOptions.Commit && !repver.DryRun {
 		// Process: Construct commit message
 		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
 
@@ -208,10 +226,26 @@ func main() {
 
 			repver.Debugln("Changes pushed successfully")
 		}
+	} else if command.GitOptions.Commit && repver.DryRun {
+		// In dry run mode, just show what would be committed
+		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
+		fmt.Printf("Dry Run: Would commit changes with message: \"%s\"\n", commitMessage)
+		fmt.Printf("Dry Run: Files that would be added to the commit:\n")
+		for _, file := range commitFiles {
+			fmt.Printf("  - %s\n", file)
+		}
+
+		if command.GitOptions.Push {
+			remote := command.GitOptions.Remote
+			if remote == "" {
+				remote = "origin"
+			}
+			fmt.Printf("Dry Run: Would push changes to remote '%s' branch '%s'\n", remote, newBranchName)
+		}
 	}
 
 	// Decision: Return to original branch?
-	if command.GitOptions.ReturnToOriginalBranch {
+	if command.GitOptions.ReturnToOriginalBranch && !repver.DryRun {
 		// Process: Switch back to original branch
 		err = repver.SwitchBranch(originalBranchName)
 		if err != nil {
@@ -233,6 +267,12 @@ func main() {
 
 			repver.Debugln("Deleted branch successfully")
 		}
+	} else if command.GitOptions.ReturnToOriginalBranch && repver.DryRun {
+		fmt.Printf("Dry Run: Would switch back to original branch '%s'\n", originalBranchName)
+
+		if command.GitOptions.DeleteBranch && command.GitOptions.CreateBranch {
+			fmt.Printf("Dry Run: Would delete branch '%s'\n", newBranchName)
+		}
 	}
 }
 
@@ -242,7 +282,7 @@ func generateHelpMessage(config *repver.RepverConfig) string {
 	var help strings.Builder
 
 	help.WriteString("USAGE:\n")
-	help.WriteString("  repver --command=<command_name> [--param.<name>=<value> ...]\n\n")
+	help.WriteString("  repver --command=<command_name> [--param.<n>=<value> ...] [OPTIONS]\n\n")
 
 	help.WriteString("AVAILABLE COMMANDS:\n")
 
@@ -299,8 +339,9 @@ func generateHelpMessage(config *repver.RepverConfig) string {
 		}
 	}
 
-	help.WriteString("FLAGS:\n")
+	help.WriteString("OPTIONS:\n")
 	help.WriteString("  --debug    Enable debug output\n")
+	help.WriteString("  --dryRun   Show what would be changed without modifying files or performing git operations\n")
 
 	return help.String()
 }
