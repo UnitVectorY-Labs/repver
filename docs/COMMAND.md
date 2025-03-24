@@ -9,7 +9,7 @@ permalink: /command
 
 The `repver` tool automates file updates and Git operations using commands defined in your configuration file.
 
-To use the command, you must run it from the root of your repository where the `.repver` file is located.  If you configure git operations, this is required to be the root of the git repository as well.
+To use the command, you must run it from the root of your repository where the `.repver` file is located.  If you configure Git operations, this is required to be the root of the Git repository as well.
 
 ## Usage
 
@@ -33,4 +33,4 @@ Parameters provided via the `--param` flag must correspond to the named capture 
 --param.version=1.2.3
 ```
 
-This applies to each named capture group in your regex patterns you define will result in a required parameter.
+Each named capture group you define in your regex patterns will result in a required parameter.

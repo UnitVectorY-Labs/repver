@@ -33,6 +33,12 @@ func (c *RepverCommand) Validate() error {
 	if c.Name == "" {
 		return fmt.Errorf("command name cannot be empty")
 	}
+
+	// Validate the command name format
+	if err := validateCommandName(c.Name); err != nil {
+		return err
+	}
+
 	// Check if the targets are valid
 	for _, target := range c.Targets {
 		if err := target.Validate(); err != nil {
@@ -46,7 +52,6 @@ func (c *RepverCommand) Validate() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -95,28 +100,9 @@ func (t *RepverTarget) Validate() error {
 		return fmt.Errorf("target path is not within the root: %s", err)
 	}
 
-	// Check if the pattern is empty
-	if t.Pattern == "" {
-		return fmt.Errorf("target pattern cannot be empty")
-	}
-
-	// First, check if the user is using (?<name>...) syntax instead of Go's (?P<name>...) syntax
-	incorrectSyntaxRegex := regexp.MustCompile(`\(\?<([^>]+)>`)
-	if incorrectSyntaxRegex.MatchString(t.Pattern) {
-		// Convert the incorrect syntax to Go's regex syntax for the error message
-		correctedPattern := incorrectSyntaxRegex.ReplaceAllString(t.Pattern, `(?P<$1>`)
-		return fmt.Errorf("Go regex requires (?P<name>...) syntax for named capture groups, not (?<name>...). Try: %s", correctedPattern)
-	}
-
-	// Validate that pattern is a valid regex
-	_, err = regexp.Compile(t.Pattern)
-	if err != nil {
-		return fmt.Errorf("target pattern is not a valid regex: %s", err)
-	}
-
-	err = validateNamedGroups(t.Pattern)
-	if err != nil {
-		return fmt.Errorf("error validating named groups: %s", err)
+	// Validate the pattern
+	if err := validatePattern(t.Pattern); err != nil {
+		return fmt.Errorf("target pattern is not valid: %s", err)
 	}
 
 	return nil
@@ -146,9 +132,53 @@ func checkFileWithinRoot(root *os.Root, path string) error {
 	return nil
 }
 
+// validateCommandName checks if the command name is valid.
+func validateCommandName(name string) error {
+	re := regexp.MustCompile(`^[a-zA-Z0-9]{1,30}$`)
+	if !re.MatchString(name) {
+		return fmt.Errorf("command name must be alphanumeric and between 1 and 30 characters")
+	}
+
+	return nil
+}
+
+func validatePattern(pattern string) error {
+
+	// Check if the pattern is empty
+	if pattern == "" {
+		return fmt.Errorf("cannot be empty")
+	}
+
+	// The regex pattern must start with ^ and end with $
+	if !regexp.MustCompile(`^\^.*\$$`).MatchString(pattern) {
+		return fmt.Errorf("must start with ^ and end with $ defining a pattern for the entire line")
+	}
+
+	// First, check if the user is using (?<name>...) syntax instead of Go's (?P<name>...) syntax
+	incorrectSyntaxRegex := regexp.MustCompile(`\(\?<([^>]+)>`)
+	if incorrectSyntaxRegex.MatchString(pattern) {
+		// Convert the incorrect syntax to Go's regex syntax for the error message
+		correctedPattern := incorrectSyntaxRegex.ReplaceAllString(pattern, `(?P<$1>`)
+		return fmt.Errorf("Go regex requires (?P<name>...) syntax for named capture groups, not (?<name>...). Try: %s", correctedPattern)
+	}
+
+	// Validate that pattern is a valid regex
+	_, err := regexp.Compile(pattern)
+	if err != nil {
+		return fmt.Errorf("not a valid regex: %s", err)
+	}
+
+	err = validateNamedGroups(pattern)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ValidateNamedGroups takes a regex pattern as input and returns an error
-// if any capturing group is not a named group. Non-capturing groups (e.g., (?:...))
-// are ignored since they are not considered capturing.
+// if any capturing group is not a named group or if there are nested named groups.
+// Non-capturing groups (e.g., (?:...)) are ignored since they are not considered capturing.
 func validateNamedGroups(pattern string) error {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -167,5 +197,37 @@ func validateNamedGroups(pattern string) error {
 			return fmt.Errorf("unnamed capturing group at index %d", i)
 		}
 	}
+
+	// Check for nested named groups by examining the pattern structure
+	namedGroupPattern := regexp.MustCompile(`\(\?P<([^>]+)>`)
+	matches := namedGroupPattern.FindAllStringIndex(pattern, -1)
+
+	if len(matches) > 1 {
+		// Check each named group to see if it contains another named group
+		for i, outerMatch := range matches {
+			outerStart := outerMatch[0]
+
+			// Find the closing parenthesis for this group
+			// This is an approximation - a proper parser would be better for complex patterns
+			depth := 1
+			outerEnd := outerStart + 1
+			for outerEnd < len(pattern) && depth > 0 {
+				if pattern[outerEnd] == '(' {
+					depth++
+				} else if pattern[outerEnd] == ')' {
+					depth--
+				}
+				outerEnd++
+			}
+
+			// Check if any other named group starts within this one
+			for j, innerMatch := range matches {
+				if i != j && innerMatch[0] > outerStart && innerMatch[0] < outerEnd {
+					return fmt.Errorf("nested named capture groups are not allowed")
+				}
+			}
+		}
+	}
+
 	return nil
 }

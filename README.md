@@ -9,7 +9,7 @@ Automate repetitive project updates and Git operations when updating simple stri
 Sometimes, you need to update multiple files in a project with the same string, like a version number. This can be tedious and error-prone if done manually.  Using `repver`, an abbreviation for "replace version", you can automate this process, making it easier to manage and reducing the risk of human error. This includes a workflow that could look like:
 
 - Creating a new branch for the change
-- Updating multiple files replacing a string with the updated version (using regex on a line-by-line basis)
+- Updating multiple files by replacing a string with the updated version (using regex on a line-by-line basis)
 - Committing the changes
 - Pushing the branch to the remote repository
 - Switching back to the original branch
@@ -22,7 +22,7 @@ This is where `repver` comes in. It automates updating multiple files with the s
 
 ## Configuration
 
-The `repver` command is run from the commandline inside of a git repository. It relies on a `.repver` file in the root of the repository containing a YAML configuration that defines the desired actions. You can define multiple commands, each of which can operate on multiple files.
+The `repver` command is run from the commandline inside of a Git repository. It relies on a `.repver` file in the root of the repository containing a YAML configuration that defines the desired actions. You can define multiple commands, each of which can operate on multiple files.
 
 Let's take a look at an example configuration file, the one used by `repver` itself to manage its own version of Go that it uses:
 
@@ -49,7 +49,7 @@ The `path` attribute will specify the file to update within the repository.
 
 The `pattern` attribute specifies a regex pattern that is used to identify a single line in a file. It must contain at least one capture group, and all capture groups must be named. These capture group names can then be specified as values in the command to substitute these values in the file.
 
-The `git` configuration allows for the application to run local git commands to further automate the process.  This includes:
+The `git` configuration allows for the application to run local Git commands to further automate the process.  This includes:
   - Creating a new branch with `create_branch` whose name can be specified with `branch_name`.
   - Automatically committing the changes with `commit` and a commit message specified with `commit_message`.
   - Pushing the branch to the remote repository with `push` and specifying the remote with `remote`.
