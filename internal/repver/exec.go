@@ -13,7 +13,8 @@ import (
 // values is a map where keys are named capture group names and values are the replacement values
 // If a named capture group in the regex doesn't have a corresponding value in the map,
 // the original text will be preserved
-func (t *RepverTarget) Execute(values map[string]string) error {
+// Returns true if changes were made, false otherwise
+func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 	Debugln("Execute: Starting execution for path: %s with pattern: %s", t.Path, t.Pattern)
 
 	// Read the file content
@@ -21,7 +22,7 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 	content, err := os.ReadFile(t.Path)
 	if err != nil {
 		Debugln("Execute: ERROR reading file: %v", err)
-		return err
+		return false, err
 	}
 	Debugln("Execute: Successfully read %d bytes from file", len(content))
 
@@ -30,7 +31,7 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 	re, err := regexp.Compile(t.Pattern)
 	if err != nil {
 		Debugln("Execute: ERROR compiling regex: %v", err)
-		return err
+		return false, err
 	}
 	Debugln("Execute: Successfully compiled regex pattern")
 
@@ -49,6 +50,7 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 	var modifiedLines []string
 	lineNum := 0
 	matchesFound := 0
+	contentModified := false
 
 	// Track changes for dry run mode
 	var changes []struct {
@@ -83,7 +85,7 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 					if !exists {
 						Debugln("Execute: No replacement value for named group '%s', keeping original text", name)
 						// return an error
-						return fmt.Errorf("no replacement value for named group '%s'", name)
+						return false, fmt.Errorf("no replacement value for named group '%s'", name)
 					}
 
 					// Find indices of this specific capture group in the modified line
@@ -105,6 +107,7 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 
 				// If line was changed, record it for dry run mode
 				if line != modifiedLine {
+					contentModified = true
 					changes = append(changes, struct {
 						lineNumber int
 						oldLine    string
@@ -126,7 +129,7 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 
 	if err := scanner.Err(); err != nil {
 		Debugln("Execute: ERROR scanning file: %v", err)
-		return err
+		return false, err
 	}
 
 	if matchesFound == 0 {
@@ -146,6 +149,7 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 	// Check if content was modified
 	if string(content) == modifiedContent {
 		Debugln("Execute: No changes were made to the file content")
+		return false, nil
 	} else {
 		Debugln("Execute: File content was modified")
 	}
@@ -159,10 +163,10 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 				fmt.Printf("    - %s\n", change.oldLine)
 				fmt.Printf("    + %s\n", change.newLine)
 			}
-			return nil
+			return contentModified, nil
 		} else {
 			fmt.Printf("File: %s (no changes)\n", t.Path)
-			return nil
+			return false, nil
 		}
 	}
 
@@ -171,10 +175,10 @@ func (t *RepverTarget) Execute(values map[string]string) error {
 	err = os.WriteFile(t.Path, []byte(modifiedContent), 0644)
 	if err != nil {
 		Debugln("Execute: ERROR writing file: %v", err)
-		return err
+		return false, err
 	}
 	Debugln("Execute: Successfully wrote file")
 
 	Debugln("Execute: Completed execution for path: %s", t.Path)
-	return nil
+	return contentModified, nil
 }

@@ -179,13 +179,13 @@ func main() {
 		fmt.Printf("Dry Run: Would create and switch to branch: %s\n", newBranchName)
 	}
 
+	// Decision: Has targets to update?
+	anyFileModified := false
 	commitFiles := []string{}
 
-	// Decision: Has target to update?
 	for _, target := range command.Targets {
-
 		// Process: Execute update to target
-		err = target.Execute(argumentValues)
+		modified, err := target.Execute(argumentValues)
 
 		// Decision: Execution successful?
 		if err != nil {
@@ -193,11 +193,16 @@ func main() {
 		}
 
 		repver.Debugln("Command executed successfully for target: %s", target.Path)
-		commitFiles = append(commitFiles, target.Path)
+		if modified {
+			anyFileModified = true
+			commitFiles = append(commitFiles, target.Path)
+		}
 	}
 
 	// Decision: Commit changes to git?
-	if command.GitOptions.Commit && !repver.DryRun {
+	if !anyFileModified {
+		repver.Debugln("No files modified, skipping commit")
+	} else if command.GitOptions.Commit && !repver.DryRun {
 		// Process: Construct commit message
 		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
 
@@ -245,7 +250,7 @@ func main() {
 	}
 
 	// Decision: Return to original branch?
-	if command.GitOptions.ReturnToOriginalBranch && !repver.DryRun {
+	if command.GitOptions.ReturnToOriginalBranch && !repver.DryRun && anyFileModified {
 		// Process: Switch back to original branch
 		err = repver.SwitchBranch(originalBranchName)
 		if err != nil {
