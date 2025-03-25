@@ -16,37 +16,36 @@ import (
 // In dry run mode, it outputs the changes that would be made without modifying the file.
 // It returns an error if any issues occur during file reading, regex compilation, or writing.
 func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
-	Debugln("Execute: Starting execution for path: %s with pattern: %s", t.Path, t.Pattern)
+	Debugln("Processing file %s using pattern: %s", t.Path, t.Pattern)
 
 	// Read the file content
-	Debugln("Execute: Reading file: %s", t.Path)
+	Debugln("Reading file: %s", t.Path)
 	content, err := os.ReadFile(t.Path)
 	if err != nil {
-		Debugln("Execute: ERROR reading file: %v", err)
+		Debugln("Failed to read file: %v", err)
 		return false, err
 	}
-	Debugln("Execute: Successfully read %d bytes from file", len(content))
+	Debugln("Read %d bytes from file", len(content))
 
 	// Compile the regex pattern
-	Debugln("Execute: Compiling regex pattern: %s", t.Pattern)
+	Debugln("Compiling pattern: %s", t.Pattern)
 	re, err := regexp.Compile(t.Pattern)
 	if err != nil {
-		Debugln("Execute: ERROR compiling regex: %v", err)
+		Debugln("Invalid regex pattern: %v", err)
 		return false, err
 	}
-	Debugln("Execute: Successfully compiled regex pattern")
 
 	// Get the named capture groups
 	names := re.SubexpNames()
-	Debugln("Execute: Found %d subexpressions (including full match)", len(names))
+	Debugln("Found %d pattern groups (including full match)", len(names))
 	for i, name := range names {
 		if i > 0 && name != "" {
-			Debugln("Execute: Named group %d: %s", i, name)
+			Debugln("Group %d: %s", i, name)
 		}
 	}
 
 	// Process the file line by line
-	Debugln("Execute: Processing file line by line")
+	Debugln("Processing file contents")
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	var modifiedLines []string
 	lineNum := 0
@@ -63,11 +62,10 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 	for scanner.Scan() {
 		lineNum++
 		line := scanner.Text()
-		Debugln("Execute: Processing line %d: %s", lineNum, line)
 
 		if re.MatchString(line) {
 			matchesFound++
-			Debugln("Execute: Match found on line %d", lineNum)
+			Debugln("Found match on line %d", lineNum)
 
 			// Process the line with named groups
 			matches := re.FindStringSubmatch(line)
@@ -84,8 +82,7 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 					// Check if we have a replacement value for this named group
 					replacement, exists := values[name]
 					if !exists {
-						Debugln("Execute: No replacement value for named group '%s', keeping original text", name)
-						// return an error
+						Debugln("Missing replacement value for group '%s'", name)
 						return false, fmt.Errorf("no replacement value for named group '%s'", name)
 					}
 
@@ -96,15 +93,15 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 					if len(tempMatches) > 2*i+1 {
 						start, end := tempMatches[2*i], tempMatches[2*i+1]
 						capturedText := modifiedLine[start:end]
-						Debugln("Execute: Replacing named group '%s': '%s' with '%s'",
-							name, capturedText, replacement)
+						Debugln("Replacing '%s' with '%s' in group '%s'",
+							capturedText, replacement, name)
 
 						// Replace just this capture group
 						modifiedLine = modifiedLine[:start] + replacement + modifiedLine[end:]
 					}
 				}
 
-				Debugln("Execute: Line after replacements: '%s'", modifiedLine)
+				Debugln("Updated line: '%s'", modifiedLine)
 
 				// If line was changed, record it for dry run mode
 				if line != modifiedLine {
@@ -119,7 +116,7 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 				modifiedLines = append(modifiedLines, modifiedLine)
 			} else {
 				// If no capture groups, keep the line as is
-				Debugln("Execute: No capture groups found, keeping line unchanged")
+				Debugln("No capture groups found in match")
 				modifiedLines = append(modifiedLines, line)
 			}
 		} else {
@@ -129,14 +126,14 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		Debugln("Execute: ERROR scanning file: %v", err)
+		Debugln("Error processing file: %v", err)
 		return false, err
 	}
 
 	if matchesFound == 0 {
-		Debugln("Execute: No matches found in any line of the file")
+		Debugln("No matches found in file")
 	} else {
-		Debugln("Execute: Found %d matches across the file", matchesFound)
+		Debugln("Found %d matches in file", matchesFound)
 	}
 
 	// Join lines back into content
@@ -149,37 +146,42 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 
 	// Check if content was modified
 	if string(content) == modifiedContent {
-		Debugln("Execute: No changes were made to the file content")
+		Debugln("No changes were made to the file content")
 		return false, nil
 	} else {
-		Debugln("Execute: File content was modified")
+		Debugln("File content was modified")
 	}
 
-	// In dry run mode, output the changes that would be made
-	if DryRun {
-		if len(changes) > 0 {
-			fmt.Printf("File: %s\n", t.Path)
-			for _, change := range changes {
-				fmt.Printf("  Line %d:\n", change.lineNumber)
-				fmt.Printf("    - %s\n", change.oldLine)
-				fmt.Printf("    + %s\n", change.newLine)
-			}
-			return contentModified, nil
-		} else {
-			fmt.Printf("File: %s (no changes)\n", t.Path)
-			return false, nil
+	// We always print the changes, this is the point of repver so we always want to see what is being changed
+	if len(changes) > 0 {
+		fmt.Println("\nFILE CHANGES:")
+		fmt.Printf("  File: %s\n", t.Path)
+
+		for _, change := range changes {
+			fmt.Printf("  +- Line %d:\n", change.lineNumber)
+			fmt.Printf("  |  - %s\n", change.oldLine)
+			fmt.Printf("  |  + %s\n", change.newLine)
 		}
+		fmt.Println("  +-")
+	} else {
+		fmt.Printf("\nFile: %s (no changes)\n", t.Path)
+		return false, nil
+	}
+
+	// If in dry run mode, skip writing the file
+	if DryRun {
+		Debugln("Dry run mode enabled, skipping file write")
+		return contentModified, nil
 	}
 
 	// Write the modified content back to the file
-	Debugln("Execute: Writing %d bytes back to file: %s", len(modifiedContent), t.Path)
+	Debugln("Writing changes to %s", t.Path)
 	err = os.WriteFile(t.Path, []byte(modifiedContent), 0644)
 	if err != nil {
-		Debugln("Execute: ERROR writing file: %v", err)
+		Debugln("Failed to write file: %v", err)
 		return false, err
 	}
-	Debugln("Execute: Successfully wrote file")
+	Debugln("Successfully updated file")
 
-	Debugln("Execute: Completed execution for path: %s", t.Path)
 	return contentModified, nil
 }

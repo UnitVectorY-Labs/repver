@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/UnitVectorY-Labs/repver/internal/git"
 	"github.com/UnitVectorY-Labs/repver/internal/repver"
 )
 
@@ -54,7 +55,7 @@ func main() {
 
 	// If dry run mode is enabled, output that information
 	if repver.DryRun {
-		fmt.Println("DRY RUN MODE ENABLED - No files will be modified and no git operations will be performed")
+		fmt.Println("DRY RUN MODE ENABLED")
 	}
 
 	// Decision: Command specified?
@@ -115,7 +116,7 @@ func main() {
 	useGit := command.GitOptions.GitOptionsSpecified()
 	if useGit && !repver.DryRun {
 		// Decision: In git root?
-		isGitRoot, err := repver.IsGitRoot()
+		isGitRoot, err := git.IsGitRoot()
 		if err != nil {
 			// This error isn't in the flowchart because the failure here is
 			printErrorAndExit(503, "Internal error determining git root")
@@ -125,12 +126,12 @@ func main() {
 		}
 
 		// Decision: Git workspace clean?
-		err = repver.CheckGitClean()
+		err = git.CheckGitClean()
 		if err != nil {
 			printErrorAndExit(107, "Git workspace not clean")
 		}
 	} else if useGit && repver.DryRun {
-		fmt.Println("Dry Run: Git operations would be performed but are disabled in dry run mode")
+		fmt.Println("[DRYRUN] Git operations would be performed but are disabled in dry run mode")
 	}
 
 	// Execution Phase
@@ -140,7 +141,7 @@ func main() {
 	newBranchName := ""
 	if useGit && !repver.DryRun {
 		// Process: Get the current branch name
-		originalBranchName, err = repver.GetCurrentBranch()
+		originalBranchName, err = git.GetCurrentBranch()
 		if err != nil {
 			// This error isn't in the flowchart because we previously checked we are in a git repo
 			printErrorAndExit(504, "Internal error could not get current branch name")
@@ -152,7 +153,7 @@ func main() {
 			newBranchName = command.GitOptions.BuildBranchName(argumentValues)
 
 			// Decision: Branch already exists?
-			branchExists, err := repver.BranchExists(newBranchName)
+			branchExists, err := git.BranchExists(newBranchName)
 			if err != nil {
 				printErrorAndExit(503, "Internal error checking if branch exists")
 			}
@@ -160,15 +161,17 @@ func main() {
 				printErrorAndExit(200, fmt.Sprintf("Branch '%s' already exists", newBranchName))
 			}
 
-			err = repver.CreateAndSwitchBranch(newBranchName)
+			// Process: Create new branch
+			output, err := git.CreateAndSwitchBranch(newBranchName)
 			// Decision: Branch creation successful?
 			if err != nil {
 				printErrorAndExit(201, "Failed to create new branch")
 			}
+			repver.Debugln("Created and switched to new branch\n%s", output)
 		}
 	} else if useGit && repver.DryRun && command.GitOptions.CreateBranch {
 		// Process: Get the current branch name
-		originalBranchName, err = repver.GetCurrentBranch()
+		originalBranchName, err = git.GetCurrentBranch()
 		if err != nil {
 			// This error isn't in the flowchart because we previously checked we are in a git repo
 			printErrorAndExit(504, "Internal error could not get current branch name")
@@ -176,7 +179,7 @@ func main() {
 
 		// In dry run mode, just show what branch would be created
 		newBranchName = command.GitOptions.BuildBranchName(argumentValues)
-		fmt.Printf("Dry Run: Would create and switch to branch: %s\n", newBranchName)
+		fmt.Printf("[DRYRUN] Would create and switch to branch: %s\n", newBranchName)
 	}
 
 	// Decision: Has targets to update?
@@ -192,7 +195,6 @@ func main() {
 			printErrorAndExit(202, "Failed to execute command on target")
 		}
 
-		repver.Debugln("Command executed successfully for target: %s", target.Path)
 		if modified {
 			anyFileModified = true
 			commitFiles = append(commitFiles, target.Path)
@@ -207,13 +209,12 @@ func main() {
 		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
 
 		// Process: Commit changes to git
-		err = repver.AddAndCommitFiles(commitFiles, commitMessage)
+		output, err := git.AddAndCommitFiles(commitFiles, commitMessage)
 		if err != nil {
 			// This error isn't in the flowchart because we previously checked we are in a git repo
 			printErrorAndExit(505, "Internal error could not add and commit files")
 		}
-
-		repver.Debugln("Changes committed successfully")
+		repver.Debugln("Changes committed successfully\n%s", output)
 
 		// Decision: Push changes to remote?
 		if command.GitOptions.Push && newBranchName != "" {
@@ -223,27 +224,27 @@ func main() {
 			}
 
 			// Process: Push changes to remote
-			err = repver.PushChanges(remote, newBranchName)
+			output, err = git.PushChanges(remote, newBranchName)
 			if err != nil {
 				// This error isn't in the flowchart because we previously checked we are in a git repo
 				printErrorAndExit(506, "Internal error failed to push changes")
 			}
-
-			repver.Debugln("Changes pushed successfully")
+			repver.Debugln("Changes pushed successfully\n%s", output)
 
 			// Decision: Create pull request?
 			if command.GitOptions.PullRequest == "GITHUB_CLI" {
-				err = repver.CreateGitHubPullRequest()
+				output, err = git.CreateGitHubPullRequest()
 				if err != nil {
 					printErrorAndExit(508, "Failed to create GitHub pull request")
 				}
+				repver.Debugln("Created GitHub pull request\n%s", output)
 			}
 		}
 	} else if command.GitOptions.Commit && repver.DryRun {
 		// In dry run mode, just show what would be committed
 		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
-		fmt.Printf("Dry Run: Would commit changes with message: \"%s\"\n", commitMessage)
-		fmt.Printf("Dry Run: Files that would be added to the commit:\n")
+		fmt.Printf("[DRYRUN] Would commit changes with message: \"%s\"\n", commitMessage)
+		fmt.Printf("[DRYRUN] Files that would be added to the commit:\n")
 		for _, file := range commitFiles {
 			fmt.Printf("  - %s\n", file)
 		}
@@ -253,38 +254,40 @@ func main() {
 			if remote == "" {
 				remote = "origin"
 			}
-			fmt.Printf("Dry Run: Would push changes to remote '%s' branch '%s'\n", remote, newBranchName)
+			fmt.Printf("[DRYRUN] Would push changes to remote '%s' branch '%s'\n", remote, newBranchName)
+		}
+
+		if command.GitOptions.PullRequest == "GITHUB_CLI" {
+			fmt.Println("[DRYRUN] Would create GitHub pull request")
 		}
 	}
 
 	// Decision: Return to original branch?
 	if command.GitOptions.ReturnToOriginalBranch && !repver.DryRun && anyFileModified {
 		// Process: Switch back to original branch
-		err = repver.SwitchToBranch(originalBranchName)
+		output, err := git.SwitchToBranch(originalBranchName)
 		if err != nil {
 			// This error isn't in the flowchart because we previously checked we are in a git repo
 			printErrorAndExit(507, "Internal error failed to switch back to original branch")
 		}
-
-		repver.Debugln("Returned to original branch successfully")
+		repver.Debugln("Returned to original branch\n%s", output)
 
 		// Decision: Delete new branch?
 		if command.GitOptions.DeleteBranch && command.GitOptions.CreateBranch {
 
 			// Process: Delete new branch
-			err = repver.DeleteLocalBranch(newBranchName)
+			output, err = git.DeleteLocalBranch(newBranchName)
 			if err != nil {
 				// This error isn't in the flowchart because we previously checked we are in a git repo
 				printErrorAndExit(509, "Internal error failed to delete new branch")
 			}
-
-			repver.Debugln("Deleted branch successfully")
+			repver.Debugln("Deleted branch\n%s", output)
 		}
 	} else if command.GitOptions.ReturnToOriginalBranch && repver.DryRun {
-		fmt.Printf("Dry Run: Would switch back to original branch '%s'\n", originalBranchName)
+		fmt.Printf("[DRYRUN] Would switch back to original branch '%s'\n", originalBranchName)
 
 		if command.GitOptions.DeleteBranch && command.GitOptions.CreateBranch {
-			fmt.Printf("Dry Run: Would delete branch '%s'\n", newBranchName)
+			fmt.Printf("[DRYRUN] Would delete branch '%s'\n", newBranchName)
 		}
 	}
 }

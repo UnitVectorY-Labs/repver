@@ -1,7 +1,6 @@
-package repver
+package git
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,27 +9,18 @@ import (
 
 // IsGitRoot checks if the current working directory is the root of a Git repository.
 func IsGitRoot() (bool, error) {
-	// Get the current working directory.
 	cwd, err := os.Getwd()
+	if err != nil {
+		return false, fmt.Errorf("error getting working directory: %w", err)
+	}
+
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	output, err := cmd.Output()
 	if err != nil {
 		return false, err
 	}
 
-	// Execute the Git command to get the root directory of the repository.
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	// Suppress any error output by directing stderr to nil.
-	cmd.Stderr = nil
-	if err := cmd.Run(); err != nil {
-		// If the command fails, it's likely that we are not in a Git repository.
-		return false, nil
-	}
-
-	// Trim any trailing newline or spaces from the output.
-	gitRoot := strings.TrimSpace(out.String())
-
-	// Compare the Git root with the current working directory.
+	gitRoot := strings.TrimSpace(string(output))
 	return cwd == gitRoot, nil
 }
 
@@ -40,7 +30,6 @@ func BranchExists(branchName string) (bool, error) {
 	err := cmd.Run()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-			// Branch does not exist
 			return false, nil
 		}
 		return false, fmt.Errorf("error checking branch existence: %w", err)
@@ -55,94 +44,86 @@ func GetCurrentBranch() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error getting current branch: %w", err)
 	}
-
-	branchName := string(output)
-	return branchName[:len(branchName)-1], nil // Remove the newline character
+	return strings.TrimSpace(string(output)), nil
 }
 
 // SwitchToBranch switches to the specified branch in the Git repository.
-func SwitchToBranch(branchName string) error {
+// Returns the command output for logging purposes.
+func SwitchToBranch(branchName string) (string, error) {
 	cmd := exec.Command("git", "checkout", branchName)
 	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error switching to branch %s: %w", branchName, err)
+		return "", fmt.Errorf("error switching to branch %s: %w", branchName, err)
 	}
-
-	fmt.Println(string(output))
-	return nil
+	return string(output), nil
 }
 
 // CheckGitClean checks if the Git repository is clean (i.e., no uncommitted changes).
 func CheckGitClean() error {
-	// Check if the git repository is clean
 	cmd := exec.Command("git", "status", "--porcelain")
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("error checking git status: %w", err)
 	}
-
 	if len(output) > 0 {
 		return fmt.Errorf("git repository is not clean")
 	}
-
 	return nil
 }
 
 // CreateAndSwitchBranch creates a new branch and switches to it.
-func CreateAndSwitchBranch(branchName string) error {
+// Returns the command output for logging purposes.
+func CreateAndSwitchBranch(branchName string) (string, error) {
 	cmd := exec.Command("git", "checkout", "-b", branchName)
 	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error creating and switching to branch %s: %w", branchName, err)
+		return "", fmt.Errorf("error creating and switching to branch %s: %w", branchName, err)
 	}
-
-	fmt.Println(string(output))
-	return nil
+	return string(output), nil
 }
 
 // AddAndCommitFiles adds files to the staging area and commits them with a message.
-func AddAndCommitFiles(fileNames []string, commitMessage string) error {
-	// Add the files to the staging area
+// Returns the commit output for logging purposes.
+func AddAndCommitFiles(fileNames []string, commitMessage string) (string, error) {
+	var output strings.Builder
+
 	for _, fileName := range fileNames {
 		cmd := exec.Command("git", "add", fileName)
-		output, err := cmd.Output()
+		addOutput, err := cmd.Output()
 		if err != nil {
-			return fmt.Errorf("error adding file %s: %w", fileName, err)
+			return "", fmt.Errorf("error adding file %s: %w", fileName, err)
 		}
-		fmt.Println(string(output))
+		output.WriteString(string(addOutput))
 	}
 
-	// Commit the changes
 	cmd := exec.Command("git", "commit", "-m", commitMessage)
-	output, err := cmd.Output()
+	commitOutput, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error committing changes: %w", err)
+		return "", fmt.Errorf("error committing changes: %w", err)
 	}
+	output.WriteString(string(commitOutput))
 
-	fmt.Println(string(output))
-	return nil
+	return output.String(), nil
 }
 
 // PushChanges pushes the changes to the specified remote and branch.
-func PushChanges(remote string, branch string) error {
+// Returns the command output for logging purposes.
+func PushChanges(remote string, branch string) (string, error) {
 	cmd := exec.Command("git", "push", remote, branch)
 	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error pushing changes to %s/%s: %w", remote, branch, err)
+		return "", fmt.Errorf("error pushing changes to %s/%s: %w", remote, branch, err)
 	}
-
-	fmt.Println(string(output))
-	return nil
+	return string(output), nil
 }
 
 // DeleteLocalBranch deletes a local branch with the specified name.
-func DeleteLocalBranch(branchName string) error {
+// Returns the command output for logging purposes.
+func DeleteLocalBranch(branchName string) (string, error) {
 	cmd := exec.Command("git", "branch", "-D", branchName)
 	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error deleting local branch %s: %w", branchName, err)
+		return "", fmt.Errorf("error deleting local branch %s: %w", branchName, err)
 	}
-
-	fmt.Println(string(output))
-	return nil
+	return string(output), nil
 }
