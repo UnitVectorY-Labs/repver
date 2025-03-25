@@ -14,7 +14,7 @@ var UserCommand string
 func ParseParams() {
 	debug := flag.Bool("debug", false, "Enable debug mode")
 	command := flag.String("command", "", "Command to execute")
-	dryRun := flag.Bool("dryRun", false, "Dry run mode - shows changes without applying them")
+	dryRun := flag.Bool("dry-run", false, "Dry run mode - shows changes without applying them")
 
 	flag.Parse()
 

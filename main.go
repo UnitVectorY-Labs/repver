@@ -46,7 +46,7 @@ func main() {
 
 	argumentFlags := make(map[string]*string)
 	for _, argumentName := range argumentNames {
-		argumentFlags[argumentName] = flag.String("param."+argumentName, "", "Value for "+argumentName)
+		argumentFlags[argumentName] = flag.String("param-"+argumentName, "", "Value for "+argumentName)
 	}
 
 	// Process: Parse command line arguments
@@ -99,13 +99,13 @@ func main() {
 		helpBuilder.WriteString(fmt.Sprintf("Command '%s' requires the following parameters:\n", repver.UserCommand))
 
 		for _, param := range missingParams {
-			helpBuilder.WriteString(fmt.Sprintf("  --param.%s=<value>\n", param))
+			helpBuilder.WriteString(fmt.Sprintf("  --param-%s=<value>\n", param))
 		}
 
 		helpBuilder.WriteString("\nComplete usage example:\n")
 		helpBuilder.WriteString(fmt.Sprintf("  repver --command=%s", repver.UserCommand))
 		for _, param := range parameters {
-			helpBuilder.WriteString(fmt.Sprintf(" --param.%s=<value>", param))
+			helpBuilder.WriteString(fmt.Sprintf(" --param-%s=<value>", param))
 		}
 
 		printErrorAndExit(105, "Missing required parameters", helpBuilder.String())
@@ -295,7 +295,7 @@ func generateHelpMessage(config *repver.RepverConfig) string {
 	var help strings.Builder
 
 	help.WriteString("USAGE:\n")
-	help.WriteString("  repver --command=<command_name> [--param.<n>=<value> ...] [OPTIONS]\n\n")
+	help.WriteString("  repver --command=<command_name> [--param-<n>=<value> ...] [OPTIONS]\n\n")
 
 	help.WriteString("AVAILABLE COMMANDS:\n")
 
@@ -343,7 +343,7 @@ func generateHelpMessage(config *repver.RepverConfig) string {
 			// Add complete example
 			help.WriteString(fmt.Sprintf("    Example: repver --command=%s", name))
 			for _, param := range params {
-				help.WriteString(fmt.Sprintf(" --param.%s=<value>", param))
+				help.WriteString(fmt.Sprintf(" --param-%s=<value>", param))
 			}
 			help.WriteString("\n\n")
 		} else {
@@ -354,7 +354,7 @@ func generateHelpMessage(config *repver.RepverConfig) string {
 
 	help.WriteString("OPTIONS:\n")
 	help.WriteString("  --debug    Enable debug output\n")
-	help.WriteString("  --dryRun   Show what would be changed without modifying files or performing git operations\n")
+	help.WriteString("  --dry-run  Show what would be changed without modifying files or performing git operations\n")
 
 	return help.String()
 }

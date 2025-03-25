@@ -14,7 +14,7 @@ To use the command, you must run it from the root of your repository where the `
 ## Usage
 
 ```bash
-repver --command=<command_name> [--param.<name>=<value> ...] [--debug] [--dryRun]
+repver --command=<command_name> [--param-<name>=<value> ...] [--debug] [--dry-run]
 ```
 
 ## Arguments
@@ -22,23 +22,23 @@ repver --command=<command_name> [--param.<name>=<value> ...] [--debug] [--dryRun
 | Argument | Description | Required |
 |----------|-------------|----------|
 | `--command=<command_name>` | The command to execute (as defined in your .repver file) | Yes |
-| `--param.<name>=<value>` | Values for the named parameters (matching regex capture groups) | Yes (if defined by the command) |
+| `--param-<name>=<value>` | Values for the named parameters (matching regex capture groups) | Yes (if defined by the command) |
 | `--debug` | Enable detailed debug output | No |
-| `--dryRun` | Show what would be changed without modifying files or performing git operations | No |
+| `--dry-run` | Show what would be changed without modifying files or performing git operations | No |
 
 ## Parameters
 
 Parameters provided via the `--param` flag must correspond to the named capture groups in your regex patterns. For example, if your regex includes `(?P<version>.*)`, you supply:
 
 ```bash
---param.version=1.2.3
+--param-version=1.2.3
 ```
 
 Each named capture group you define in your regex patterns will result in a required parameter.
 
 ## Dry Run Mode
 
-When you use the `--dryRun` flag, the tool will:
+When you use the `--dry-run` flag, the tool will:
 
 1. Display what files would be modified, showing the specific line numbers with current and updated content
 2. Skip all git operations (creating branches, committing, pushing, etc.)
