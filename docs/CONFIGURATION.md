@@ -41,6 +41,7 @@ commands:
      commit_message: "Update Go version to {{version}}"
      push: true
      remote: "origin"
+     pull_request: "GITHUB_CLI"
      return_to_original_branch: true
      delete_branch: true
 ```
