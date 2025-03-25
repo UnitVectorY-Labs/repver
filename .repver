@@ -1,3 +1,4 @@
+# .repver
 commands:
  - name: "goversion"
    targets:
