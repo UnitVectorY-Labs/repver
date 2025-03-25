@@ -9,11 +9,12 @@ import (
 	"strings"
 )
 
-// Execute applies the values map to the file at the path using the regex pattern
-// values is a map where keys are named capture group names and values are the replacement values
-// If a named capture group in the regex doesn't have a corresponding value in the map,
-// the original text will be preserved
-// Returns true if changes were made, false otherwise
+// Execute performs the regex replacement on the file specified by Path.
+// It reads the file, applies the regex pattern, and writes back the modified content.
+// The values map contains the replacement values for named capture groups in the regex pattern.
+// It returns true if the content was modified, false otherwise.
+// In dry run mode, it outputs the changes that would be made without modifying the file.
+// It returns an error if any issues occur during file reading, regex compilation, or writing.
 func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 	Debugln("Execute: Starting execution for path: %s with pattern: %s", t.Path, t.Pattern)
 

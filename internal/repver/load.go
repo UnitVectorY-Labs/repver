@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Load loads a configuration from the specified file path
+// Load reads a YAML file from the specified path and parses it into a RepverConfig structure
 func Load(filePath string) (*RepverConfig, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -16,7 +16,7 @@ func Load(filePath string) (*RepverConfig, error) {
 	return Parse(string(data))
 }
 
-// Parse parses YAML content into a RepverConfig structure
+// Parse takes a YAML string and parses it into a RepverConfig structure
 func Parse(yamlContent string) (*RepverConfig, error) {
 	config := &RepverConfig{}
 	err := yaml.Unmarshal([]byte(yamlContent), config)

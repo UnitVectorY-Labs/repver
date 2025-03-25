@@ -10,7 +10,7 @@ var Debug bool
 var DryRun bool
 var UserCommand string
 
-// Func load command line parameters to bool
+// ParseParams initializes the command-line flags and sets the global variables
 func ParseParams() {
 	debug := flag.Bool("debug", false, "Enable debug mode")
 	command := flag.String("command", "", "Command to execute")
@@ -23,6 +23,7 @@ func ParseParams() {
 	UserCommand = *command
 }
 
+// Debugln prints debug messages to stderr if Debug mode is enabled
 func Debugln(format string, args ...interface{}) {
 	if Debug {
 		_, _ = fmt.Fprintf(os.Stderr, format+"\n", args...)

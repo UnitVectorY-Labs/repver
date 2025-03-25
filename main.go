@@ -10,7 +10,7 @@ import (
 	"github.com/UnitVectorY-Labs/repver/internal/repver"
 )
 
-// Main function returns hello world
+// main is the entry point for the repver command-line tool.
 func main() {
 
 	// Initilization Phase
@@ -260,7 +260,7 @@ func main() {
 	// Decision: Return to original branch?
 	if command.GitOptions.ReturnToOriginalBranch && !repver.DryRun && anyFileModified {
 		// Process: Switch back to original branch
-		err = repver.SwitchBranch(originalBranchName)
+		err = repver.SwitchToBranch(originalBranchName)
 		if err != nil {
 			// This error isn't in the flowchart because we previously checked we are in a git repo
 			printErrorAndExit(507, "Internal error failed to switch back to original branch")

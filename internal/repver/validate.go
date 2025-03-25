@@ -55,7 +55,7 @@ func (c *RepverCommand) Validate() error {
 	return nil
 }
 
-// Validate  validates the RepverGit structure
+// Validate validates the RepverGit structure
 func (g *RepverGit) Validate() error {
 
 	if g.DeleteBranch && !g.CreateBranch {
@@ -116,6 +116,7 @@ func (t *RepverTarget) Validate() error {
 	return nil
 }
 
+// checkFileWithinRoot checks if the file is within the confined root and is readable.
 func checkFileWithinRoot(root *os.Root, path string) error {
 	// Get file info using Stat within the confined root
 	info, err := root.Stat(path)
@@ -150,6 +151,7 @@ func validateCommandName(name string) error {
 	return nil
 }
 
+// validatePattern checks if the pattern is valid.
 func validatePattern(pattern string) error {
 
 	// Check if the pattern is empty
@@ -184,9 +186,7 @@ func validatePattern(pattern string) error {
 	return nil
 }
 
-// ValidateNamedGroups takes a regex pattern as input and returns an error
-// if any capturing group is not a named group or if there are nested named groups.
-// Non-capturing groups (e.g., (?:...)) are ignored since they are not considered capturing.
+// validateNamedGroups checks if the named groups in the regex pattern are valid.
 func validateNamedGroups(pattern string) error {
 	re, err := regexp.Compile(pattern)
 	if err != nil {

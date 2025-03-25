@@ -5,6 +5,7 @@ import (
 	"os/exec"
 )
 
+// CreateGitHubPullRequest creates a pull request on GitHub using the GitHub CLI.
 func CreateGitHubPullRequest() error {
 	cmd := exec.Command("gh", "pr", "create", "--fill")
 	output, err := cmd.Output()
