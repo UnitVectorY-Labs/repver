@@ -60,12 +60,12 @@ The `branch_name` and `commit_message` attributes can use the capture group name
 
 ## Command
 
-To run `repver`, you must provide the `--command={name}` argument to specify which command to run. The command name must match one of the command names defined in the `.repver` file. Additionally, the pattern uses a regular expression to match individual lines in the file. The capture groups must be named, and their names are used as parameters in the format `--param.{name}={value}`.
+To run `repver`, you must provide the `--command={name}` argument to specify which command to run. The command name must match one of the command names defined in the `.repver` file. Additionally, the pattern uses a regular expression to match individual lines in the file. The capture groups must be named, and their names are used as parameters in the format `--param-{name}={value}`.
 
 For example, to run the `goversion` command shown above, use:
 
 ```bash
-repver --command=goversion --param.version=1.24.1
+repver --command=goversion --param-version=1.24.1
 ```
 
 ## Dependencies
