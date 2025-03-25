@@ -16,7 +16,7 @@ Sometimes, you need to update multiple files in a project with the same string, 
 - Switching back to the original branch
 - Deleting the local branch
 
-While it doesn't take long to manually complete these tasks, if you need to do it across multiple reposiotories or multiple files, it can become tedious. The entire process can be automated with a single command to `repver` which will take care of all of those steps for you based on your pre-configured `.repver` file included in your repsitory.
+While it doesn't take long to manually complete these tasks, if you need to do it across multiple repositories or multiple files, it can become tedious. The entire process can be automated with a single command to `repver` which will take care of all of those steps for you based on your pre-configured `.repver` file included in your repository.
 
 But wait, isn't Dependabot already doing this for you? Yes, but it will only work for the dependencies that it manages. If you have version numbers in places like documentation, Dockerfiles, or other files, you’ll need to update those manually.
 
@@ -72,4 +72,4 @@ repver --command=goversion --param-version=1.24.1
 ## Dependencies
 
 - Git commands utilize the git command line commands which must be installed and accessible with appropriate permissions to the repository
-- Creating pull requests with GitHub utilizies the `gh` command line tool, which must be installed and authenticated with your GitHub account
+- Creating pull requests with GitHub utilizes the `gh` command line tool, which must be installed and authenticated with your GitHub account

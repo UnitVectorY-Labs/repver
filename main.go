@@ -14,7 +14,7 @@ import (
 // main is the entry point for the repver command-line tool.
 func main() {
 
-	// Initilization Phase
+	// Initialization Phase
 
 	// Decision: .repver exists?
 	if _, err := os.Stat(".repver"); os.IsNotExist(err) {

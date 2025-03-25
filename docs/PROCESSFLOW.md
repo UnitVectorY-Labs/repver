@@ -16,7 +16,7 @@ permalink: /processflow
 
 These flowcharts represent the internal process of the `repver` tool. They illustrate how the tool operates and the sequence of operations it performs internally.  This is best used as a reference for developers and contributors to understand the flow of the tool and is not necessary for a user to understand this process.
 
-## Initilization Phase
+## Initialization Phase
 
 ```mermaid
 flowchart TD
@@ -164,7 +164,7 @@ flowchart TD
 
 ## Internal Errors
 
-Internal errors are errors that occur during the execution but are not represented in the flowchart as they occur in exceptional curcumstances that should not be possible to encounter as previous steps should prevent them from occurring. These errors are not user errors but rather indicate a likely bug in the code or an unexpected state.
+Internal errors are errors that occur during the execution but are not represented in the flowchart as they occur in exceptional circumstances that should not be possible to encounter as previous steps should prevent them from occurring. These errors are not user errors but rather indicate a likely bug in the code or an unexpected state.
 
 | Code | Error                                                   |
 |------|---------------------------------------------------------|
