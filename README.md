@@ -1,4 +1,4 @@
-[![License](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT) [![Concept](https://img.shields.io/badge/Status-Concept-white)](https://guide.unitvectorylabs.com/bestpractices/status/#concept) [![codecov](https://codecov.io/gh/UnitVectorY-Labs/repver/graph/badge.svg?token=uW5nCgpegM)](https://codecov.io/gh/UnitVectorY-Labs/repver)
+[![GitHub release](https://img.shields.io/github/release/UnitVectorY-Labs/repver.svg)](https://github.com/UnitVectorY-Labs/repver/releases/latest) [![License](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT) [![Active](https://img.shields.io/badge/Status-Active-green)](https://guide.unitvectorylabs.com/bestpractices/status/#active) [![codecov](https://codecov.io/gh/UnitVectorY-Labs/repver/graph/badge.svg?token=uW5nCgpegM)](https://codecov.io/gh/UnitVectorY-Labs/repver)
 
 # repver
 
