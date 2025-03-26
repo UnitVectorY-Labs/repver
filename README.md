@@ -6,7 +6,7 @@ Automate repetitive project updates and Git operations when updating simple stri
 
 ## Why repver?
 
-Sometimes, you need to update multiple files in a project with the same string, like a version number. This can be tedious and error-prone if done manually.  Using `repver`, an abbreviation for "replace version", you can automate this process, making it easier to manage and reducing the risk of human error. This includes a flow that could look like:
+Sometimes, you need to update multiple files in a project with the same string, like a version number. This can be tedious and error-prone if done manually.  Using `repver`, short for "replace version", you can automate this process, making it easier to manage and reducing the risk of human error. This includes a flow that could look like:
 
 - Creating a new branch for the change
 - Updating multiple files by replacing a string with the updated version (using regex on a line-by-line basis)
