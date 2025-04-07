@@ -11,7 +11,7 @@ The `repver` tool uses a configuration file to define commands and their paramet
 
 Each command is defined by a `name` which must be unique. It is an alphanumeric string that can be up to 30 characters long.
 
-A command can define multiple `targets`, each specifying a `path` to the file file to modify and a `pattern` that defines the regex.  The `pattern` regex must start with "^" and end with "$" to ensure that it matches an entire line in the file as it is applied line-by-line.  The pattern must also contain at least one capture group, and all capture groups must be named using the syntax "(?P<name>.*)" as an example.  The names of the capture groups are used as parameters in the command, to substitute these values in the file using the `--param-<name>=<value>` argument.
+A command can define multiple `targets`, each specifying a `path` to the file to modify and a `pattern` that defines the regex.  The `pattern` regex must start with "^" and end with "$" to ensure that it matches an entire line in the file as it is applied line-by-line.  The pattern must also contain at least one capture group, and all capture groups must be named using the syntax "(?P<name>.*)" as an example.  The names of the capture groups are used as parameters in the command, to substitute these values in the file using the `--param-<name>=<value>` argument.
 
 The optional `git` section of the command allows for the application to run local Git commands to further automate the process.  This includes:
 

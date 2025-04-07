@@ -7,5 +7,5 @@ permalink: /
 
 # repver
 
-Automate repetitive project updates and Git operations when updating simple strings like version numbers across multiple files concurrently.
+Automate project updates and Git operations by updating simple strings—for example, version numbers—across many files at once.
 

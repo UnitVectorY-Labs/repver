@@ -1,5 +1,5 @@
 title: repver
-description: "Automate repetitive project updates and Git operations when updating simple strings like version numbers across multiple files concurrently."
+description: "Automate project updates and Git operations by updating simple strings—for example, version numbers—across many files at once."
 
 remote_theme: just-the-docs/just-the-docs@v0.10.1
 plugins:

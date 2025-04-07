@@ -2,7 +2,7 @@
 
 # repver
 
-Automate repetitive project updates and Git operations when updating simple strings like version numbers across multiple files concurrently.
+Automate project updates and Git operations by updating simple strings—for example, version numbers—across many files at once.
 
 ## Why repver?
 
@@ -22,7 +22,7 @@ But wait, isn't Dependabot already doing this for you? Yes, but it will only wor
 
 ## Configuration
 
-The `repver` command is run from the commandline inside of a Git repository. It relies on a `.repver` file in the root of the repository containing a YAML configuration that defines the desired actions. You can define multiple commands, each of which can operate on multiple files.
+The `repver` command is run from the command line inside of a Git repository. It relies on a `.repver` file in the root of the repository containing a YAML configuration that defines the desired actions. You can define multiple commands, each of which can operate on multiple files.
 
 Let's take a look at an example configuration file, the one used by `repver` itself to manage its own version of Go that it uses:
 
