@@ -11,6 +11,8 @@ import (
 	"github.com/UnitVectorY-Labs/repver/internal/repver"
 )
 
+var Version = "dev" // This will be set by the build systems to the release version
+
 // main is the entry point for the repver command-line tool.
 func main() {
 
@@ -50,8 +52,15 @@ func main() {
 		argumentFlags[argumentName] = flag.String("param-"+argumentName, "", "Value for "+argumentName)
 	}
 
+	showVersion := flag.Bool("version", false, "Print version")
+
 	// Process: Parse command line arguments
 	repver.ParseParams()
+
+	if *showVersion {
+		fmt.Println("Version:", Version)
+		return
+	}
 
 	// If dry run mode is enabled, output that information
 	if repver.DryRun {
