@@ -20,6 +20,16 @@ While it doesn't take long to manually complete these tasks, if you need to do i
 
 But wait, isn't Dependabot already doing this for you? Yes, but it will only work for the dependencies that it manages. If you have version numbers in places like documentation, Dockerfiles, or other files, you’ll need to update those manually.
 
+## Releases
+
+All official versions of **repver** are published on [GitHub Releases](https://github.com/UnitVectorY-Labs/repver/releases). Since this application is written in Go, each release provides pre-compiled executables for macOS, Linux, and Windows—ready to download and run.
+
+Alternatively, if you have Go installed, you can install **repver** directly from source using the following command:
+
+```bash
+go install github.com/UnitVectorY-Labs/repver@latest
+```
+
 ## Configuration
 
 The `repver` command is run from the command line inside of a Git repository. It relies on a `.repver` file in the root of the repository containing a YAML configuration that defines the desired actions. You can define multiple commands, each of which can operate on multiple files.
