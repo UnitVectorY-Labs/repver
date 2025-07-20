@@ -7,7 +7,7 @@ permalink: /
 
 # repver
 
-Automate project updates and Git operations by updating simple strings—for example, version numbers—across many files at once.
+Automate batch replacement of simple strings, like version numbers, across multiple files and handle all Git steps with one command.
 
 ## Example Usage
 
