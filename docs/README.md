@@ -7,35 +7,30 @@ permalink: /
 
 # repver
 
-Automate batch replacement of simple strings, like version numbers, across multiple files and handle all Git steps with one command.
+Keep version numbers and other shared strings consistent across your repo, without hunting through files by hand.
 
-## Example Usage
+`repver` applies a set of pre-defined replacements across one or more files, and can optionally handle the Git workflow to deliver the change as a pull request.
 
-To use `repver` you need to create a configuration in your repository that defines which files you want updated.  An example of this is in the repver repository itself with the [.repver](https://github.com/UnitVectorY-Labs/repver/blob/main/.repver) which uses the following configuration to update the version of Go across multiple files.
+## What it does
 
-```yaml
-# .repver
-commands:
- - name: "goversion"
-   targets:
-   - path: "go.mod"
-     pattern: "^go (?P<version>.*) // GOVERSION$"
-   - path: ".github/workflows/build-go.yml"
-     pattern: "^          go-version: '(?P<version>.*)' # GOVERSION$"
-   git:
-     create_branch: true
-     branch_name : "go-v{{version}}"
-     commit: true
-     commit_message: "Update Go version to {{version}}"
-     push: true
-     remote: "origin"
-     pull_request: "GITHUB_CLI"
-     return_to_original_branch: true
-     delete_branch: true
-```
+You describe an update once in a `.repver` file:
+- which files to touch
+- which line patterns to match
+- which named values you want to replace
+- what Git operations to perform (branch, commit, push, PR)
 
-The command to upgrade the version which creates a pull request for a new version is:
+Then you run one simple command to apply that update consistently, reducing your toil and risk of human error.
 
-```bash
-repver --command=goversion --param-version=1.24.3
-```
+## When it’s useful
+
+If a value appears in more than one place, `repver` helps you change it safely and repeatably, for example:
+
+- Updating language or runtime versions across build files and CI workflows (Go, Node.js, Python, etc.)
+- Keeping Dockerfiles, docs, and release notes in sync with the version you actually ship
+- Standardizing updates across many repos that follow the same conventions
+
+## How it complements Dependabot
+
+Dependabot is great at updating dependencies it understands.
+
+`repver` is for the other category of version strings: the ones you chose to embed in places like documentation, CI configuration, Dockerfiles, or custom metadata. It’s not a replacement for Dependabot, it’s a practical add-on for the gaps.

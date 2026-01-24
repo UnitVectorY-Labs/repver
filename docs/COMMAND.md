@@ -14,7 +14,7 @@ To use the command, you must run it from the root of your repository where the `
 ## Usage
 
 ```bash
-repver --command=<command_name> [--param-<name>=<value> ...] [--debug] [--dry-run]
+repver --command=<command_name> [--param-<name>=<value> ...] [--debug] [--dry-run] [--exists]
 ```
 
 ## Arguments
@@ -25,6 +25,7 @@ repver --command=<command_name> [--param-<name>=<value> ...] [--debug] [--dry-ru
 | `--param-<name>=<value>` | Values for the named parameters (matching regex capture groups) | Yes (if defined by the command) |
 | `--debug` | Enable detailed debug output | No |
 | `--dry-run` | Show what would be changed without modifying files or performing git operations | No |
+| `--exists` | Check whether .repver exists and contains the specified command; exits 0 if yes, non-zero otherwise | No |
 
 ## Parameters
 
@@ -45,3 +46,35 @@ When you use the `--dry-run` flag, the tool will:
 3. Print information about the git operations that would have been performed
 
 This is useful for verifying what changes would be made before actually applying them.
+
+## Exists Mode
+
+The `--exists` flag is designed for scripting and CI workflows. It checks whether a repository has a valid `.repver` configuration file and whether the specified command is defined.
+
+When you use the `--exists` flag:
+
+1. The `--command` flag is required
+2. All `--param-*` flags are ignored
+3. No file modifications are performed
+4. No Git operations are performed
+5. Output is minimal (errors only, to stderr)
+
+**Exit Codes:**
+
+| Exit Code | Meaning |
+|-----------|---------|
+| 0 | `.repver` exists, is valid, and contains the specified command |
+| 1 | `.repver` is missing, invalid, or the command is not found |
+
+**Example:**
+
+```bash
+# Check if a repository supports the 'goversion' command
+if repver --command=goversion --exists; then
+  echo "Repository supports goversion command"
+else
+  echo "Repository does not support goversion command"
+fi
+```
+
+This mode is ideal for scripts that need to conditionally run repver across multiple repositories.

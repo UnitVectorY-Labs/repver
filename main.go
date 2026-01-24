@@ -16,6 +16,46 @@ var Version = "dev" // This will be set by the build systems to the release vers
 // main is the entry point for the repver command-line tool.
 func main() {
 
+	// Pre-parse static flags to handle --version and --exists before loading .repver
+	preParse := flag.NewFlagSet("preparse", flag.ContinueOnError)
+	preParse.SetOutput(os.Stderr)
+	preCommand := preParse.String("command", "", "Command to execute")
+	preExists := preParse.Bool("exists", false, "Check whether .repver exists and contains the specified command")
+	preVersion := preParse.Bool("version", false, "Print version")
+	preDebug := preParse.Bool("debug", false, "Enable debug mode")
+	preDryRun := preParse.Bool("dry-run", false, "Dry run mode")
+
+	// Register param-* flags dynamically to avoid unknown flag errors during pre-parse
+	// We'll accept any --param-* flags here but not use them
+	for _, arg := range os.Args[1:] {
+		if strings.HasPrefix(arg, "--param-") {
+			parts := strings.SplitN(arg, "=", 2)
+			paramName := strings.TrimPrefix(parts[0], "--")
+			if preParse.Lookup(paramName) == nil {
+				preParse.String(paramName, "", "")
+			}
+		}
+	}
+
+	// Parse pre-parse flags - errors are handled by falling through to normal mode
+	_ = preParse.Parse(os.Args[1:])
+
+	// Handle --version early
+	if *preVersion {
+		fmt.Println("Version:", Version)
+		return
+	}
+
+	// Handle --exists mode
+	if *preExists {
+		handleExistsMode(*preCommand)
+		return
+	}
+
+	// Set debug and dry-run from pre-parse for early debugging
+	repver.Debug = *preDebug
+	repver.DryRun = *preDryRun
+
 	// Initialization Phase
 
 	// Decision: .repver exists?
@@ -377,4 +417,44 @@ func printErrorAndExit(errNum int, errMsg string, helpMsg ...string) {
 		fmt.Fprintln(os.Stderr, "\n"+helpMsg[0])
 	}
 	os.Exit(errNum)
+}
+
+// handleExistsMode handles the --exists flag behavior.
+// It checks if .repver exists and contains the specified command.
+// Exits with 0 if successful, 1 otherwise.
+func handleExistsMode(command string) {
+	// Check if --command is provided
+	if command == "" {
+		fmt.Fprintln(os.Stderr, "--command is required with --exists")
+		os.Exit(1)
+	}
+
+	// Check if .repver exists
+	if _, err := os.Stat(".repver"); os.IsNotExist(err) {
+		fmt.Fprintln(os.Stderr, ".repver not found")
+		os.Exit(1)
+	}
+
+	// Load .repver
+	config, err := repver.Load(".repver")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "invalid .repver")
+		os.Exit(1)
+	}
+
+	// Validate .repver
+	if err := config.Validate(); err != nil {
+		fmt.Fprintln(os.Stderr, "invalid .repver")
+		os.Exit(1)
+	}
+
+	// Check if command exists
+	_, err = config.GetCommand(command)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "command not found: %s\n", command)
+		os.Exit(1)
+	}
+
+	// Success - command exists
+	os.Exit(0)
 }
