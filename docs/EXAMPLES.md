@@ -44,10 +44,10 @@ commands:
 
 ### Running the Command
 
-Update Go to version 1.24.0 and create a PR:
+Update Go to version 1.25.0 and create a PR:
 
 ```bash
-repver --command=goversion --param-version=1.24.0
+repver --command=goversion --param-version=1.25.0
 ```
 
 ### Preview Changes First
@@ -55,7 +55,7 @@ repver --command=goversion --param-version=1.24.0
 Use `--dry-run` to see what would be changed without making modifications:
 
 ```bash
-repver --command=goversion --param-version=1.24.0 --dry-run
+repver --command=goversion --param-version=1.25.0 --dry-run
 ```
 
 This displays the files that would be modified and the Git operations that would be performed.
@@ -75,7 +75,7 @@ echo $?  # 0 if command exists, 1 otherwise
 
 ```bash
 if repver --command=goversion --exists; then
-  repver --command=goversion --param-version=1.24.0
+  repver --command=goversion --param-version=1.25.0
 else
   echo "Repository does not support goversion command"
 fi
@@ -86,60 +86,24 @@ fi
 Loop over multiple repositories and apply updates only where the command is defined:
 
 ```bash
-#!/bin/bash
-VERSION="1.24.0"
+#!/usr/bin/env bash
+set -euo pipefail
 
-for repo in repo1 repo2 repo3; do
-  cd "$repo"
-  
-  if repver --command=goversion --exists 2>/dev/null; then
-    echo "Updating $repo..."
-    repver --command=goversion --param-version="$VERSION"
-  else
-    echo "Skipping $repo (no goversion command)"
-  fi
-  
-  cd ..
+GO_VERSION="1.25.0"
+
+for repo in */; do
+  [ -d "$repo/.git" ] || continue
+
+  echo "==> $repo"
+  (
+    cd "$repo"
+
+    # check for repver + goversion support
+    if repver --command=goversion --exists >/dev/null 2>&1; then
+      repver --command=goversion --param-version="$GO_VERSION"
+    else
+      echo "    skipping (no .repver goversion)"
+    fi
+  )
 done
-```
-
-## Unix-Style Scripting
-
-Repver follows Unix conventions for composability:
-
-- **Exit code 0** indicates success
-- **Non-zero exit codes** indicate failure
-- **Minimal output** in `--exists` mode (errors to stderr only)
-- **Works with standard shell constructs** like `if`, `&&`, `||`
-
-### Examples
-
-```bash
-# Run only if command exists
-repver --command=update --exists && repver --command=update --param-version=2.0
-
-# Handle errors
-repver --command=update --param-version=2.0 || echo "Update failed"
-
-# Silent check
-if repver --command=update --exists 2>/dev/null; then
-  # Command is available
-fi
-```
-
-## CI/CD Integration
-
-Repver works well in CI pipelines. Use `--dry-run` in PR checks to validate the configuration without making changes:
-
-```yaml
-# GitHub Actions example
-- name: Validate repver configuration
-  run: repver --command=goversion --param-version=1.24.0 --dry-run
-```
-
-For automated updates, use the full command with Git automation:
-
-```yaml
-- name: Update Go version
-  run: repver --command=goversion --param-version=${{ inputs.version }}
 ```
