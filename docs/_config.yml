@@ -1,7 +1,7 @@
 title: repver
 description: "Automate batch replacement of simple strings, like version numbers, across multiple files and handle all Git steps with one command."
 
-remote_theme: just-the-docs/just-the-docs@v0.10.1
+remote_theme: just-the-docs/just-the-docs@v0.12.0
 plugins:
   - jekyll-remote-theme
 
