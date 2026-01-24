@@ -28,15 +28,16 @@ func main() {
 	// Register param-* flags dynamically to avoid unknown flag errors during pre-parse
 	// We'll accept any --param-* flags here but not use them
 	for _, arg := range os.Args[1:] {
-		if strings.HasPrefix(arg, "--param-") || strings.HasPrefix(arg, "-param-") {
+		if strings.HasPrefix(arg, "--param-") {
 			parts := strings.SplitN(arg, "=", 2)
-			paramName := strings.TrimPrefix(strings.TrimPrefix(parts[0], "--"), "-")
+			paramName := strings.TrimPrefix(parts[0], "--")
 			if preParse.Lookup(paramName) == nil {
 				preParse.String(paramName, "", "")
 			}
 		}
 	}
 
+	// Parse pre-parse flags - errors are handled by falling through to normal mode
 	_ = preParse.Parse(os.Args[1:])
 
 	// Handle --version early
