@@ -170,6 +170,28 @@ func main() {
 		printErrorAndExit(105, "Missing required parameters", helpBuilder.String())
 	}
 
+	// Process: Validate params and extract named groups
+	extractedGroups := make(map[string]string)
+	for _, param := range command.Params {
+		value, exists := argumentValues[param.Name]
+		if exists {
+			// Validate the value against the param pattern
+			if err := param.ValidateValue(value); err != nil {
+				printErrorAndExit(108, fmt.Sprintf("Parameter '%s' validation failed: %v", param.Name, err))
+			}
+
+			// Extract named groups from the value
+			groups, err := param.ExtractNamedGroups(value)
+			if err != nil {
+				printErrorAndExit(109, fmt.Sprintf("Failed to extract groups from parameter '%s': %v", param.Name, err))
+			}
+			for k, v := range groups {
+				extractedGroups[k] = v
+			}
+			repver.Debugln("Extracted groups from param '%s': %v", param.Name, groups)
+		}
+	}
+
 	// Decision: Git options specified?
 	useGit := command.GitOptions.GitOptionsSpecified()
 	if useGit && !repver.DryRun {
@@ -246,7 +268,7 @@ func main() {
 
 	for _, target := range command.Targets {
 		// Process: Execute update to target
-		modified, err := target.Execute(argumentValues)
+		modified, err := target.Execute(argumentValues, extractedGroups)
 
 		// Decision: Execution successful?
 		if err != nil {
