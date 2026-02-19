@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// Pre-compiled regex pattern for placeholder extraction
+var placeholderRegex = regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
 type RepverConfig struct {
 	// Commands is an array of version modification commands
 	Commands []RepverCommand `yaml:"commands"`
@@ -228,8 +231,7 @@ func (t *RepverTarget) GetTransformParamNames() []string {
 	}
 
 	// Find all {{name}} patterns in the transform
-	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
-	matches := re.FindAllStringSubmatch(t.Transform, -1)
+	matches := placeholderRegex.FindAllStringSubmatch(t.Transform, -1)
 
 	var names []string
 	seen := make(map[string]bool)

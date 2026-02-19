@@ -6,6 +6,15 @@ import (
 	"regexp"
 )
 
+// Pre-compiled regex patterns for validation
+var (
+	commandNameRegex        = regexp.MustCompile(`^[a-zA-Z0-9]{1,30}$`)
+	patternAnchorRegex      = regexp.MustCompile(`^\^.*\$$`)
+	incorrectGroupSyntax    = regexp.MustCompile(`\(\?<([^>]+)>`)
+	namedGroupPatternRegex  = regexp.MustCompile(`\(\?P<([^>]+)>`)
+	transformPlaceholderRe  = regexp.MustCompile(`\{\{([^}]+)\}\}`)
+)
+
 // Validate validates the RepverConfig structure
 func (c *RepverConfig) Validate() error {
 	// Check if the commands are valid
@@ -168,8 +177,7 @@ func checkFileWithinRoot(root *os.Root, path string) error {
 
 // validateCommandName checks if the command name is valid.
 func validateCommandName(name string) error {
-	re := regexp.MustCompile(`^[a-zA-Z0-9]{1,30}$`)
-	if !re.MatchString(name) {
+	if !commandNameRegex.MatchString(name) {
 		return fmt.Errorf("command name must be alphanumeric and between 1 and 30 characters")
 	}
 
@@ -185,15 +193,14 @@ func validatePattern(pattern string) error {
 	}
 
 	// The regex pattern must start with ^ and end with $
-	if !regexp.MustCompile(`^\^.*\$$`).MatchString(pattern) {
+	if !patternAnchorRegex.MatchString(pattern) {
 		return fmt.Errorf("must start with ^ and end with $ defining a pattern for the entire line")
 	}
 
 	// First, check if the user is using (?<name>...) syntax instead of Go's (?P<name>...) syntax
-	incorrectSyntaxRegex := regexp.MustCompile(`\(\?<([^>]+)>`)
-	if incorrectSyntaxRegex.MatchString(pattern) {
+	if incorrectGroupSyntax.MatchString(pattern) {
 		// Convert the incorrect syntax to Go's regex syntax for the error message
-		correctedPattern := incorrectSyntaxRegex.ReplaceAllString(pattern, `(?P<$1>`)
+		correctedPattern := incorrectGroupSyntax.ReplaceAllString(pattern, `(?P<$1>`)
 		return fmt.Errorf("Go regex requires (?P<name>...) syntax for named capture groups, not (?<name>...). Try: %s", correctedPattern)
 	}
 
@@ -232,8 +239,7 @@ func validateNamedGroups(pattern string) error {
 	}
 
 	// Check for nested named groups by examining the pattern structure
-	namedGroupPattern := regexp.MustCompile(`\(\?P<([^>]+)>`)
-	matches := namedGroupPattern.FindAllStringIndex(pattern, -1)
+	matches := namedGroupPatternRegex.FindAllStringIndex(pattern, -1)
 
 	if len(matches) > 1 {
 		// Check each named group to see if it contains another named group
@@ -273,8 +279,7 @@ func (p *RepverParam) Validate() error {
 	}
 
 	// Validate param name format (alphanumeric, 1-30 chars)
-	re := regexp.MustCompile(`^[a-zA-Z0-9]{1,30}$`)
-	if !re.MatchString(p.Name) {
+	if !commandNameRegex.MatchString(p.Name) {
 		return fmt.Errorf("param name must be alphanumeric and between 1 and 30 characters")
 	}
 
@@ -284,14 +289,13 @@ func (p *RepverParam) Validate() error {
 	}
 
 	// The regex pattern must start with ^ and end with $
-	if !regexp.MustCompile(`^\^.*\$$`).MatchString(p.Pattern) {
+	if !patternAnchorRegex.MatchString(p.Pattern) {
 		return fmt.Errorf("param pattern must start with ^ and end with $ to match the entire value")
 	}
 
 	// First, check if the user is using (?<name>...) syntax instead of Go's (?P<name>...) syntax
-	incorrectSyntaxRegex := regexp.MustCompile(`\(\?<([^>]+)>`)
-	if incorrectSyntaxRegex.MatchString(p.Pattern) {
-		correctedPattern := incorrectSyntaxRegex.ReplaceAllString(p.Pattern, `(?P<$1>`)
+	if incorrectGroupSyntax.MatchString(p.Pattern) {
+		correctedPattern := incorrectGroupSyntax.ReplaceAllString(p.Pattern, `(?P<$1>`)
 		return fmt.Errorf("Go regex requires (?P<name>...) syntax for named capture groups, not (?<name>...). Try: %s", correctedPattern)
 	}
 
@@ -308,8 +312,7 @@ func (p *RepverParam) Validate() error {
 // that are defined in the command's params patterns
 func (c *RepverCommand) validateTransform(transform string) error {
 	// Find all {{name}} patterns in the transform
-	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
-	matches := re.FindAllStringSubmatch(transform, -1)
+	matches := transformPlaceholderRe.FindAllStringSubmatch(transform, -1)
 
 	if len(matches) == 0 {
 		return fmt.Errorf("transform must contain at least one {{name}} placeholder")
