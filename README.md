@@ -39,14 +39,19 @@ Let's take a look at an example configuration file, the one used by `repver` its
 ```yaml
 commands:
  - name: "goversion"
+   params:
+   - name: "version"
+     pattern: "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$"
    targets:
    - path: "go.mod"
      pattern: "^go (?P<version>.*) // GOVERSION$"
+     transform: "{{major}}.{{minor}}.{{patch}}"
    - path: ".github/workflows/build-go.yml"
      pattern: "^          go-version: '(?P<version>.*)' # GOVERSION$"
+     transform: "{{major}}.{{minor}}.{{patch}}"
    git:
      create_branch: true
-     branch_name : "go-v{{version}}"
+     branch_name: "go-v{{version}}"
      commit: true
      commit_message: "Update Go version to {{version}}"
      push: true
@@ -56,9 +61,11 @@ commands:
      delete_branch: true
 ```
 
-The `path` attribute will specify the file to update within the repository.
+The `path` attribute specifies the file to update within the repository.
 
 The `pattern` attribute specifies a regex pattern that is used to identify a single line in a file. It must contain at least one capture group, and all capture groups must be named. These capture group names can then be specified as values in the command to substitute these values in the file.
+
+The optional `params` section allows you to validate command-line parameters against a regex pattern and extract named groups for use in transforms. The `transform` attribute specifies how to build the replacement value using named groups from the `params` pattern.
 
 The `git` configuration allows for the application to run local Git commands to further automate the process.  This includes:
   - Creating a new branch with `create_branch` whose name can be specified with `branch_name`.
@@ -76,7 +83,7 @@ To run `repver`, you must provide the `--command={name}` argument to specify whi
 For example, to run the `goversion` command shown above, use:
 
 ```bash
-repver --command=goversion --param-version=1.24.1
+repver --command=goversion --param-version=1.26.0
 ```
 
 ## Dependencies

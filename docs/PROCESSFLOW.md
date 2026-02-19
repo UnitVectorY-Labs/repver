@@ -50,7 +50,15 @@ flowchart TD
     PVerifyParams --> DParamsProvided{All params provided?}
     DParamsProvided -- No --> EMissingParams[Error 105<br>Missing required parameters]
     EMissingParams --> EndMissingParams((End))
-    DParamsProvided -- Yes --> DGitOptionsProvided{Git options provided?}
+    DParamsProvided -- Yes --> DParamsConfigured{Params configured?}
+
+    DParamsConfigured -- Yes --> PValidateParams[Validate param values<br>and extract groups]
+    DParamsConfigured -- No --> DGitOptionsProvided
+
+    PValidateParams --> DParamValidSuccess{Param validation<br>successful?}
+    DParamValidSuccess -- No --> EParamValidFailed[Error 108<br>Parameter validation failed]
+    EParamValidFailed --> EndParamValidFailed((End))
+    DParamValidSuccess -- Yes --> DGitOptionsProvided{Git options provided?}
 
     DGitOptionsProvided -- Yes --> DInGitRepo{In git repo?}
     DGitOptionsProvided -- No --> ExecPhase((Execution Phase))
@@ -71,9 +79,9 @@ flowchart TD
     
     %% Apply styles
     class Start startStyle;
-    class EndNoConfig,EndLoadFailed,EndValidateFailed,EndNoCommand,EndCommandNotFound,EndMissingParams,EndNoGitRepo,EndGitNotClean endStyle;
-    class PLoadConfig,PValidateConfig,PCommandArgs,PParseFlags,PGetCommand,PVerifyParams,ExecPhase processStyle;
-    class DConfigExists,DLoadSuccess,DValidateSuccess,DCommandSpecified,DCommandFound,DParamsProvided,DGitOptionsProvided,DInGitRepo,DGitClean decisionStyle;
+    class EndNoConfig,EndLoadFailed,EndValidateFailed,EndNoCommand,EndCommandNotFound,EndMissingParams,EndParamValidFailed,EndNoGitRepo,EndGitNotClean endStyle;
+    class PLoadConfig,PValidateConfig,PCommandArgs,PParseFlags,PGetCommand,PVerifyParams,PValidateParams,ExecPhase processStyle;
+    class DConfigExists,DLoadSuccess,DValidateSuccess,DCommandSpecified,DCommandFound,DParamsProvided,DParamsConfigured,DParamValidSuccess,DGitOptionsProvided,DInGitRepo,DGitClean decisionStyle;
 ```
 
 ## Execution Phase
@@ -98,7 +106,7 @@ flowchart TD
     ECreateBranchFailed --> EndCreateBranchFailed((End))
     DBranchCreated -- Yes --> DHasTargets
     
-    DHasTargets -- Yes --> PExecuteTarget[Execute update to target]
+    DHasTargets -- Yes --> PExecuteTarget[Execute update to target<br>applying transform if specified]
     DHasTargets -- No --> DCommitChanges{Commit changes to git?}
     
     PExecuteTarget --> DExecutionSuccess{Execution successful?}
@@ -158,6 +166,8 @@ flowchart TD
 | 105  | Missing required parameters         |
 | 106  | Not in git repository               |
 | 107  | Git workspace not clean             |
+| 108  | Parameter validation failed         |
+| 109  | Failed to extract groups from parameter |
 | 200  | Branch already exists               |
 | 201  | Failed to create new branch         |
 | 202  | Failed to execute command on target |
