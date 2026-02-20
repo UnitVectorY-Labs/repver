@@ -37,7 +37,7 @@ commands:
       transform: "{{major}}.{{minor}}.{{patch}}"
     git:
       create_branch: true
-      branch_name: "go-v{{version}}"
+      branch_name: "repver/go-v{{version}}"
       commit: true
       commit_message: "Update Go version to {{version}}"
       push: true

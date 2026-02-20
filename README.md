@@ -13,12 +13,12 @@ Sometimes, you need to update multiple files in a project with the same string, 
 - Committing the changes
 - Pushing the branch to the remote repository
 - Creating a pull request on GitHub
-- Switching back to the original branch
+- Locally switching back to the original branch
 - Deleting the local branch
 
-While it doesn't take long to manually complete these tasks, if you need to do it across multiple repositories or multiple files, it can become tedious. The entire process can be automated with a single command to `repver` which will take care of all of those steps for you based on your pre-configured `.repver` file included in your repository.
+While it doesn't take long to manually complete these tasks, if you need to do it across multiple repositories or multiple files, it can take a significant amount of time. The entire process can be automated with a single command to `repver` which will take care of all of those steps for you based on your repository specific configuration in the `.repver` file.
 
-But wait, isn't Dependabot already doing this for you? Yes, but it will only work for the dependencies that it manages. If you have version numbers in places like documentation, Dockerfiles, or other files, you’ll need to update those manually.
+But wait, isn't Dependabot already doing this for you? Yes, but it will only work for the dependencies that it manages. If you have version numbers in places like documentation, Dockerfiles, or other files, you’ll need to update those manually. You can use `repver` to automate all of those updates at once, and even create a pull request for you to review the changes before merging.
 
 ## Releases
 
@@ -51,7 +51,7 @@ commands:
      transform: "{{major}}.{{minor}}.{{patch}}"
    git:
      create_branch: true
-     branch_name: "go-v{{version}}"
+     branch_name: "repver/go-v{{version}}"
      commit: true
      commit_message: "Update Go version to {{version}}"
      push: true
@@ -61,24 +61,9 @@ commands:
      delete_branch: true
 ```
 
-The `path` attribute specifies the file to update within the repository.
-
-The `pattern` attribute specifies a regex pattern that is used to identify a single line in a file. It must contain at least one capture group, and all capture groups must be named. These capture group names can then be specified as values in the command to substitute these values in the file.
-
-The optional `params` section allows you to validate command-line parameters against a regex pattern and extract named groups for use in transforms. The `transform` attribute specifies how to build the replacement value using named groups from the `params` pattern.
-
-The `git` configuration allows for the application to run local Git commands to further automate the process.  This includes:
-  - Creating a new branch with `create_branch` whose name can be specified with `branch_name`.
-  - Automatically committing the changes with `commit` and a commit message specified with `commit_message`.
-  - Pushing the branch to the remote repository with `push` and specifying the remote with `remote`.
-  - Returning to the original branch with `return_to_original_branch`.
-  - Deleting the branch with `delete_branch` after the changes have been pushed.
-
-The `branch_name` and `commit_message` attributes can use the capture group names from the `pattern` attribute to create a dynamic branch name and commit message. For example, if the capture group name is `version`, you can use `{{version}}` in the branch name or commit message to substitute the value of that capture group.
-
 ## Command
 
-To run `repver`, you must provide the `--command={name}` argument to specify which command to run. The command name must match one of the command names defined in the `.repver` file. Additionally, the pattern uses a regular expression to match individual lines in the file. The capture groups must be named, and their names are used as parameters in the format `--param-{name}={value}`.
+To run `repver`, you must provide the `--command={name}` argument to specify which command to run. The command name must match one of the command names defined in the `.repver` file. This allows you to have different sets of values to update independently with different commands. The pattern uses a regular expression to match individual lines in the file. The capture groups must be named, and their names are used as parameters in the format `--param-{name}={value}`.
 
 For example, to run the `goversion` command shown above, use:
 

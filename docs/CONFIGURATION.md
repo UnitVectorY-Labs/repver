@@ -92,19 +92,7 @@ The optional `git` section automates Git operations after file modifications:
 
 ## Example Configuration
 
-### Basic Configuration
-
-```yaml
-commands:
- - name: "appversion"
-   targets:
-   - path: "version.txt"
-     pattern: "^version: (?P<version>.*)$"
-```
-
-### Configuration with Parameter Validation and Transforms
-
-This example demonstrates using `params` to validate the version format and `transform` to generate different version representations for different files:
+Here’s an example `.repver` configuration that updates Go version references in a repository, creates a branch, commits the changes, pushes to the remote, and opens a pull request:
 
 ```yaml
 commands:
@@ -121,29 +109,9 @@ commands:
      transform: "{{major}}.{{minor}}.{{patch}}"
    git:
      create_branch: true
-     branch_name: "go-v{{version}}"
+     branch_name: "repver/go-v{{version}}"
      commit: true
      commit_message: "Update Go version to {{version}}"
-     push: true
-     remote: "origin"
-     pull_request: "GITHUB_CLI"
-     return_to_original_branch: true
-     delete_branch: true
-```
-
-### Configuration with Full Git Automation
-
-```yaml
-commands:
- - name: "justthedocsversion"
-   targets:
-   - path: "docs/_config.yml"
-     pattern: "^remote_theme: just-the-docs/just-the-docs@(?P<version>.*)$"
-   git:
-     create_branch: true
-     branch_name: "just-the-docs-{{version}}"
-     commit: true
-     commit_message: "Update just-the-docs version to {{version}}"
      push: true
      remote: "origin"
      pull_request: "GITHUB_CLI"

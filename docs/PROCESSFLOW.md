@@ -156,21 +156,21 @@ flowchart TD
 
 ## Error Codes
 
-| Code | Error                               |
-|------|-------------------------------------|
-| 100  | .repver file not found              |
-| 101  | .repver failed to load              |
-| 102  | .repver validation failed           |
-| 103  | No command specified                |
-| 104  | Command not found                   |
-| 105  | Missing required parameters         |
-| 106  | Not in git repository               |
-| 107  | Git workspace not clean             |
-| 108  | Parameter validation failed         |
+| Code | Error                                   |
+|------|-----------------------------------------|
+| 100  | .repver file not found                  |
+| 101  | .repver failed to load                  |
+| 102  | .repver validation failed               |
+| 103  | No command specified                    |
+| 104  | Command not found                       |
+| 105  | Missing required parameters             |
+| 106  | Not in git repository                   |
+| 107  | Git workspace not clean                 |
+| 108  | Parameter validation failed             |
 | 109  | Failed to extract groups from parameter |
-| 200  | Branch already exists               |
-| 201  | Failed to create new branch         |
-| 202  | Failed to execute command on target |
+| 200  | Branch already exists                   |
+| 201  | Failed to create new branch             |
+| 202  | Failed to execute command on target     |
 
 ## Internal Errors
 
