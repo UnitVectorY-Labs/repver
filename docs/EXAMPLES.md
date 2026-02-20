@@ -14,9 +14,9 @@ permalink: /examples
 1. TOC
 {:toc}
 
-## Updating Versions Across Files
+## Updating Go Version with Parameter Validation
 
-The most common use case for repver is updating version numbers or other strings consistently across multiple files.
+This example demonstrates using `params` to validate the version format and `transform` to handle the Go version replacement. The version is validated as a semantic version, and the full version is used in all files.
 
 ### Configuration
 
@@ -25,14 +25,19 @@ Create a `.repver` file in your repository root:
 ```yaml
 commands:
   - name: "goversion"
+    params:
+    - name: "version"
+      pattern: "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$"
     targets:
     - path: "go.mod"
       pattern: "^go (?P<version>.*) // GOVERSION$"
+      transform: "{{major}}.{{minor}}"
     - path: ".github/workflows/build.yml"
       pattern: "^          go-version: '(?P<version>.*)' # GOVERSION$"
+      transform: "{{major}}.{{minor}}.{{patch}}"
     git:
       create_branch: true
-      branch_name: "go-v{{version}}"
+      branch_name: "repver/go-v{{version}}"
       commit: true
       commit_message: "Update Go version to {{version}}"
       push: true
@@ -44,21 +49,45 @@ commands:
 
 ### Running the Command
 
-Update Go to version 1.25.0 and create a PR:
+Update Go to version 1.26.0 and create a PR:
 
 ```bash
-repver --command=goversion --param-version=1.25.0
+repver --command=goversion --param-version=1.26.0
 ```
+
+The `params` section validates that the version follows semantic versioning format. If you provide an invalid version like `1.26` or `latest`, repver will report an error before making any changes.
 
 ### Preview Changes First
 
 Use `--dry-run` to see what would be changed without making modifications:
 
 ```bash
-repver --command=goversion --param-version=1.25.0 --dry-run
+repver --command=goversion --param-version=1.26.0 --dry-run
 ```
 
 This displays the files that would be modified and the Git operations that would be performed.
+
+## Basic Version Update Without Parameter Validation
+
+For simpler use cases where you don't need parameter validation, you can omit the `params` section:
+
+### Configuration
+
+```yaml
+commands:
+  - name: "appversion"
+    targets:
+    - path: "version.txt"
+      pattern: "^version: (?P<version>.*)$"
+    - path: "package.json"
+      pattern: "^  \"version\": \"(?P<version>.*)\",?$"
+```
+
+### Running the Command
+
+```bash
+repver --command=appversion --param-version=2.0.0
+```
 
 ## Checking Command Availability
 
@@ -75,7 +104,7 @@ echo $?  # 0 if command exists, 1 otherwise
 
 ```bash
 if repver --command=goversion --exists; then
-  repver --command=goversion --param-version=1.25.0
+  repver --command=goversion --param-version=1.26.0
 else
   echo "Repository does not support goversion command"
 fi
@@ -89,7 +118,7 @@ Loop over multiple repositories and apply updates only where the command is defi
 #!/usr/bin/env bash
 set -euo pipefail
 
-GO_VERSION="1.25.0"
+GO_VERSION="1.26.0"
 
 for repo in */; do
   [ -d "$repo/.git" ] || continue

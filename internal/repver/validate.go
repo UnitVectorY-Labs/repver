@@ -6,6 +6,15 @@ import (
 	"regexp"
 )
 
+// Pre-compiled regex patterns for validation
+var (
+	commandNameRegex        = regexp.MustCompile(`^[a-zA-Z0-9]{1,30}$`)
+	patternAnchorRegex      = regexp.MustCompile(`^\^.*\$$`)
+	incorrectGroupSyntax    = regexp.MustCompile(`\(\?<([^>]+)>`)
+	namedGroupPatternRegex  = regexp.MustCompile(`\(\?P<([^>]+)>`)
+	transformPlaceholderRe  = regexp.MustCompile(`\{\{([^}]+)\}\}`)
+)
+
 // Validate validates the RepverConfig structure
 func (c *RepverConfig) Validate() error {
 	// Check if the commands are valid
@@ -39,10 +48,35 @@ func (c *RepverCommand) Validate() error {
 		return err
 	}
 
+	// Validate params if specified
+	for _, param := range c.Params {
+		if err := param.Validate(); err != nil {
+			return fmt.Errorf("invalid param '%s': %s", param.Name, err)
+		}
+	}
+
+	// Check for duplicate param names
+	paramsSeen := make(map[string]bool)
+	for _, param := range c.Params {
+		if paramsSeen[param.Name] {
+			return fmt.Errorf("duplicate param name found: %s", param.Name)
+		}
+		paramsSeen[param.Name] = true
+	}
+
 	// Check if the targets are valid
 	for _, target := range c.Targets {
 		if err := target.Validate(); err != nil {
 			return err
+		}
+	}
+
+	// Validate transforms reference valid param groups
+	for _, target := range c.Targets {
+		if target.Transform != "" {
+			if err := c.validateTransform(target.Transform); err != nil {
+				return fmt.Errorf("invalid transform for target '%s': %s", target.Path, err)
+			}
 		}
 	}
 
@@ -143,8 +177,7 @@ func checkFileWithinRoot(root *os.Root, path string) error {
 
 // validateCommandName checks if the command name is valid.
 func validateCommandName(name string) error {
-	re := regexp.MustCompile(`^[a-zA-Z0-9]{1,30}$`)
-	if !re.MatchString(name) {
+	if !commandNameRegex.MatchString(name) {
 		return fmt.Errorf("command name must be alphanumeric and between 1 and 30 characters")
 	}
 
@@ -160,15 +193,14 @@ func validatePattern(pattern string) error {
 	}
 
 	// The regex pattern must start with ^ and end with $
-	if !regexp.MustCompile(`^\^.*\$$`).MatchString(pattern) {
+	if !patternAnchorRegex.MatchString(pattern) {
 		return fmt.Errorf("must start with ^ and end with $ defining a pattern for the entire line")
 	}
 
 	// First, check if the user is using (?<name>...) syntax instead of Go's (?P<name>...) syntax
-	incorrectSyntaxRegex := regexp.MustCompile(`\(\?<([^>]+)>`)
-	if incorrectSyntaxRegex.MatchString(pattern) {
+	if incorrectGroupSyntax.MatchString(pattern) {
 		// Convert the incorrect syntax to Go's regex syntax for the error message
-		correctedPattern := incorrectSyntaxRegex.ReplaceAllString(pattern, `(?P<$1>`)
+		correctedPattern := incorrectGroupSyntax.ReplaceAllString(pattern, `(?P<$1>`)
 		return fmt.Errorf("Go regex requires (?P<name>...) syntax for named capture groups, not (?<name>...). Try: %s", correctedPattern)
 	}
 
@@ -207,8 +239,7 @@ func validateNamedGroups(pattern string) error {
 	}
 
 	// Check for nested named groups by examining the pattern structure
-	namedGroupPattern := regexp.MustCompile(`\(\?P<([^>]+)>`)
-	matches := namedGroupPattern.FindAllStringIndex(pattern, -1)
+	matches := namedGroupPatternRegex.FindAllStringIndex(pattern, -1)
 
 	if len(matches) > 1 {
 		// Check each named group to see if it contains another named group
@@ -238,4 +269,93 @@ func validateNamedGroups(pattern string) error {
 	}
 
 	return nil
+}
+
+// Validate validates the RepverParam structure
+func (p *RepverParam) Validate() error {
+	// Check if the name is empty
+	if p.Name == "" {
+		return fmt.Errorf("param name cannot be empty")
+	}
+
+	// Validate param name format (alphanumeric, 1-30 chars)
+	if !commandNameRegex.MatchString(p.Name) {
+		return fmt.Errorf("param name must be alphanumeric and between 1 and 30 characters")
+	}
+
+	// Check if the pattern is empty
+	if p.Pattern == "" {
+		return fmt.Errorf("param pattern cannot be empty")
+	}
+
+	// The regex pattern must start with ^ and end with $
+	if !patternAnchorRegex.MatchString(p.Pattern) {
+		return fmt.Errorf("param pattern must start with ^ and end with $ to match the entire value")
+	}
+
+	// First, check if the user is using (?<name>...) syntax instead of Go's (?P<name>...) syntax
+	if incorrectGroupSyntax.MatchString(p.Pattern) {
+		correctedPattern := incorrectGroupSyntax.ReplaceAllString(p.Pattern, `(?P<$1>`)
+		return fmt.Errorf("Go regex requires (?P<name>...) syntax for named capture groups, not (?<name>...). Try: %s", correctedPattern)
+	}
+
+	// Validate that pattern is a valid regex
+	_, err := regexp.Compile(p.Pattern)
+	if err != nil {
+		return fmt.Errorf("param pattern is not a valid regex: %s", err)
+	}
+
+	return nil
+}
+
+// validateTransform validates that a transform template only references groups
+// that are defined in the command's params patterns
+func (c *RepverCommand) validateTransform(transform string) error {
+	// Find all {{name}} patterns in the transform
+	matches := transformPlaceholderRe.FindAllStringSubmatch(transform, -1)
+
+	if len(matches) == 0 {
+		return fmt.Errorf("transform must contain at least one {{name}} placeholder")
+	}
+
+	// Get all available group names from params
+	availableGroups := make(map[string]bool)
+	for _, param := range c.Params {
+		paramRe, err := regexp.Compile(param.Pattern)
+		if err != nil {
+			continue
+		}
+		names := paramRe.SubexpNames()
+		for i, name := range names {
+			if i > 0 && name != "" {
+				availableGroups[name] = true
+			}
+		}
+	}
+
+	// If no params are defined, transform cannot be used
+	if len(c.Params) == 0 {
+		return fmt.Errorf("transform requires params to be defined with named capture groups")
+	}
+
+	// Validate each placeholder references an available group
+	for _, match := range matches {
+		if len(match) > 1 {
+			groupName := match[1]
+			if !availableGroups[groupName] {
+				return fmt.Errorf("transform references unknown group '{{%s}}', available groups: %v", groupName, getMapKeys(availableGroups))
+			}
+		}
+	}
+
+	return nil
+}
+
+// getMapKeys returns the keys of a map as a slice
+func getMapKeys(m map[string]bool) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

@@ -6,14 +6,28 @@ import (
 	"strings"
 )
 
+// Pre-compiled regex pattern for placeholder extraction
+var placeholderRegex = regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
 type RepverConfig struct {
 	// Commands is an array of version modification commands
 	Commands []RepverCommand `yaml:"commands"`
 }
 
+// RepverParam defines a parameter validation configuration
+type RepverParam struct {
+	// Name is the name of the parameter (must match command-line --param-<name>)
+	Name string `yaml:"name"`
+	// Pattern is the regex pattern to validate and extract values from the parameter
+	// It can contain named capture groups (e.g., (?P<major>\d+)) for use in transforms
+	Pattern string `yaml:"pattern"`
+}
+
 type RepverCommand struct {
 	// Name of the command
 	Name string `yaml:"name"`
+	// Params defines optional validation patterns for command-line parameters
+	Params []RepverParam `yaml:"params"`
 	// Targets is a list of files and patterns to modify
 	Targets []RepverTarget `yaml:"targets"`
 	// GitOptions configures Git operations to perform
@@ -47,6 +61,10 @@ type RepverTarget struct {
 	Path string `yaml:"path"`
 	// Pattern is the regex pattern to match content in the target file
 	Pattern string `yaml:"pattern"`
+	// Transform specifies how to transform parameter values using named groups from params
+	// Uses {{name}} syntax to reference named groups from the params pattern
+	// If not specified, the raw parameter value is used
+	Transform string `yaml:"transform"`
 }
 
 // GetCommand returns a command by name; if not found, it returns an error
@@ -140,4 +158,89 @@ func (g *RepverGit) BuildCommitMessage(vals map[string]string) string {
 // GitOptionsSpecified checks if any Git options are specified
 func (g *RepverGit) GitOptionsSpecified() bool {
 	return g.CreateBranch || g.DeleteBranch || g.Commit || g.Push || g.ReturnToOriginalBranch
+}
+
+// GetParam returns a param definition by name; if not found, it returns nil
+func (c *RepverCommand) GetParam(name string) *RepverParam {
+	for i := range c.Params {
+		if c.Params[i].Name == name {
+			return &c.Params[i]
+		}
+	}
+	return nil
+}
+
+// ExtractNamedGroups extracts named groups from a value using the param's pattern
+// Returns a map of group names to their captured values
+func (p *RepverParam) ExtractNamedGroups(value string) (map[string]string, error) {
+	re, err := regexp.Compile(p.Pattern)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile param pattern: %w", err)
+	}
+
+	matches := re.FindStringSubmatch(value)
+	if matches == nil {
+		return nil, fmt.Errorf("value '%s' does not match pattern '%s'", value, p.Pattern)
+	}
+
+	result := make(map[string]string)
+	names := re.SubexpNames()
+	for i, name := range names {
+		if i > 0 && name != "" && i < len(matches) {
+			result[name] = matches[i]
+		}
+	}
+
+	return result, nil
+}
+
+// ValidateValue validates that a value matches the param's pattern
+func (p *RepverParam) ValidateValue(value string) error {
+	re, err := regexp.Compile(p.Pattern)
+	if err != nil {
+		return fmt.Errorf("failed to compile param pattern: %w", err)
+	}
+
+	if !re.MatchString(value) {
+		return fmt.Errorf("value '%s' does not match pattern '%s'", value, p.Pattern)
+	}
+
+	return nil
+}
+
+// ApplyTransform applies the transform template using extracted named groups
+// If transform is empty, returns the original value unchanged
+func ApplyTransform(transform string, extractedGroups map[string]string) string {
+	if transform == "" {
+		return ""
+	}
+
+	result := transform
+	for key, val := range extractedGroups {
+		result = strings.ReplaceAll(result, "{{"+key+"}}", val)
+	}
+
+	return result
+}
+
+// GetTransformParamName extracts the param name that is referenced in a transform template
+// Returns the first param name found in the transform, or empty string if none found
+func (t *RepverTarget) GetTransformParamNames() []string {
+	if t.Transform == "" {
+		return nil
+	}
+
+	// Find all {{name}} patterns in the transform
+	matches := placeholderRegex.FindAllStringSubmatch(t.Transform, -1)
+
+	var names []string
+	seen := make(map[string]bool)
+	for _, match := range matches {
+		if len(match) > 1 && !seen[match[1]] {
+			names = append(names, match[1])
+			seen[match[1]] = true
+		}
+	}
+
+	return names
 }

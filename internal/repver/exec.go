@@ -12,10 +12,11 @@ import (
 // Execute performs the regex replacement on the file specified by Path.
 // It reads the file, applies the regex pattern, and writes back the modified content.
 // The values map contains the replacement values for named capture groups in the regex pattern.
+// The extractedGroups map contains named groups extracted from param patterns for use in transforms.
 // It returns true if the content was modified, false otherwise.
 // In dry run mode, it outputs the changes that would be made without modifying the file.
 // It returns an error if any issues occur during file reading, regex compilation, or writing.
-func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
+func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[string]string) (bool, error) {
 	Debugln("Processing file %s using pattern: %s", t.Path, t.Pattern)
 
 	// Read the file content
@@ -41,6 +42,26 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 	for i, name := range names {
 		if i > 0 && name != "" {
 			Debugln("Group %d: %s", i, name)
+		}
+	}
+
+	// Prepare effective values: apply transforms if specified
+	effectiveValues := make(map[string]string)
+	for k, v := range values {
+		effectiveValues[k] = v
+	}
+
+	// If transform is specified, apply it to get the replacement value
+	if t.Transform != "" && extractedGroups != nil {
+		transformedValue := ApplyTransform(t.Transform, extractedGroups)
+		Debugln("Transform applied: '%s' -> '%s'", t.Transform, transformedValue)
+
+		// The transformed value replaces all named capture groups in this target
+		// since transform produces a single output value for the entire replacement
+		for i, name := range names {
+			if i > 0 && name != "" {
+				effectiveValues[name] = transformedValue
+			}
 		}
 	}
 
@@ -80,7 +101,7 @@ func (t *RepverTarget) Execute(values map[string]string) (bool, error) {
 					}
 
 					// Check if we have a replacement value for this named group
-					replacement, exists := values[name]
+					replacement, exists := effectiveValues[name]
 					if !exists {
 						Debugln("Missing replacement value for group '%s'", name)
 						return false, fmt.Errorf("no replacement value for named group '%s'", name)
