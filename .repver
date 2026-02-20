@@ -10,7 +10,6 @@ commands:
      transform: "{{major}}.{{minor}}"
    - path: ".github/workflows/build-go.yml"
      pattern: "^          go-version: '(?P<version>.*)' # GOVERSION$"
-     transform: "{{major}}.{{minor}}.{{patch}}"
    git:
      create_branch: true
      branch_name: "repver/go-v{{version}}"
