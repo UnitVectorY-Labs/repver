@@ -115,7 +115,7 @@ commands:
    targets:
    - path: "go.mod"
      pattern: "^go (?P<version>.*) // GOVERSION$"
-     transform: "{{major}}.{{minor}}.{{patch}}"
+     transform: "{{major}}.{{minor}}"
    - path: ".github/workflows/build-go.yml"
      pattern: "^          go-version: '(?P<version>.*)' # GOVERSION$"
      transform: "{{major}}.{{minor}}.{{patch}}"
