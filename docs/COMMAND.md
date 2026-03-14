@@ -16,7 +16,7 @@ If every target file already contains the requested values, `repver` exits succe
 ## Usage
 
 ```bash
-repver --command=<command_name> [--param-<name>=<value> ...] [--debug] [--dry-run] [--exists]
+repver --command=<command_name> [--param-<name>=<value> ...] [--debug] [--dry-run] [--no-color] [--exists]
 ```
 
 ## Arguments
@@ -27,6 +27,7 @@ repver --command=<command_name> [--param-<name>=<value> ...] [--debug] [--dry-ru
 | `--param-<name>=<value>` | Values for the named parameters (matching regex capture groups) | Yes (if defined by the command) |
 | `--debug` | Enable detailed debug output | No |
 | `--dry-run` | Show what would be changed without modifying files or performing git operations | No |
+| `--no-color` | Disable colored terminal output | No |
 | `--exists` | Check whether .repver exists and contains the specified command; exits 0 if yes, non-zero otherwise | No |
 
 ## Parameters
@@ -80,3 +81,22 @@ fi
 ```
 
 This mode is ideal for scripts that need to conditionally run repver across multiple repositories.
+
+## Color Output
+
+Terminal output is colorized by default to improve readability. Diff output uses green for added lines and red for removed lines, while dry-run messages are highlighted in yellow and error labels appear in bold red.
+
+Color can be disabled in two ways:
+
+- Pass the `--no-color` flag
+- Set the `NO_COLOR` environment variable (any value)
+
+```bash
+# Disable color with a flag
+repver --command=goversion --param-version=1.26.0 --no-color
+
+# Disable color with the environment variable
+NO_COLOR=1 repver --command=goversion --param-version=1.26.0
+```
+
+The `NO_COLOR` convention follows the [no-color.org](https://no-color.org/) standard.

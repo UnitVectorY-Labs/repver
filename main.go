@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/UnitVectorY-Labs/repver/internal/color"
 	"github.com/UnitVectorY-Labs/repver/internal/git"
 	"github.com/UnitVectorY-Labs/repver/internal/repver"
 )
@@ -33,6 +34,7 @@ func main() {
 	preVersion := preParse.Bool("version", false, "Print version")
 	preDebug := preParse.Bool("debug", false, "Enable debug mode")
 	preDryRun := preParse.Bool("dry-run", false, "Dry run mode")
+	preNoColor := preParse.Bool("no-color", false, "Disable colored output")
 
 	// Register param-* flags dynamically to avoid unknown flag errors during pre-parse
 	// We'll accept any --param-* flags here but not use them
@@ -64,6 +66,13 @@ func main() {
 	// Set debug and dry-run from pre-parse for early debugging
 	repver.Debug = *preDebug
 	repver.DryRun = *preDryRun
+
+	// Disable color if --no-color flag was passed (NO_COLOR env var is
+	// handled by the color package init function)
+	if *preNoColor {
+		color.Enabled = false
+	}
+	repver.NoColor = !color.Enabled
 
 	// Initialization Phase
 
@@ -105,6 +114,11 @@ func main() {
 
 	// Process: Parse command line arguments
 	repver.ParseParams()
+
+	// Sync color state after full parse in case --no-color came through here
+	if repver.NoColor {
+		color.Enabled = false
+	}
 
 	if *showVersion {
 		fmt.Println("Version:", Version)
@@ -206,14 +220,14 @@ func main() {
 	}
 
 	if !anyFileModified {
-		fmt.Println("No updates needed; target files already match the requested values.")
+		fmt.Println(color.Green("No updates needed; target files already match the requested values."))
 		return
 	}
 
 	// If dry run mode is enabled, output that information only after confirming
 	// there is actual work to preview.
 	if repver.DryRun {
-		fmt.Println("DRY RUN MODE ENABLED")
+		fmt.Println(color.Yellow("DRY RUN MODE ENABLED"))
 	}
 
 	// Decision: Git options specified?
@@ -235,7 +249,7 @@ func main() {
 			printErrorAndExit(107, "Git workspace not clean")
 		}
 	} else if useGit && repver.DryRun {
-		fmt.Println("[DRYRUN] Git operations would be performed but are disabled in dry run mode")
+		fmt.Println(color.Yellow("[DRYRUN] Git operations would be performed but are disabled in dry run mode"))
 	}
 
 	// Execution Phase
@@ -283,7 +297,7 @@ func main() {
 
 		// In dry run mode, just show what branch would be created
 		newBranchName = command.GitOptions.BuildBranchName(argumentValues)
-		fmt.Printf("[DRYRUN] Would create and switch to branch: %s\n", newBranchName)
+		fmt.Println(color.Yellowf("[DRYRUN] Would create and switch to branch: %s", newBranchName))
 	}
 
 	for i, target := range command.Targets {
@@ -338,8 +352,8 @@ func main() {
 	} else if command.GitOptions.Commit && repver.DryRun {
 		// In dry run mode, just show what would be committed
 		commitMessage := command.GitOptions.BuildCommitMessage(argumentValues)
-		fmt.Printf("[DRYRUN] Would commit changes with message: \"%s\"\n", commitMessage)
-		fmt.Printf("[DRYRUN] Files that would be added to the commit:\n")
+		fmt.Println(color.Yellowf("[DRYRUN] Would commit changes with message: \"%s\"", commitMessage))
+		fmt.Println(color.Yellow("[DRYRUN] Files that would be added to the commit:"))
 		for _, file := range commitFiles {
 			fmt.Printf("  - %s\n", file)
 		}
@@ -349,11 +363,11 @@ func main() {
 			if remote == "" {
 				remote = "origin"
 			}
-			fmt.Printf("[DRYRUN] Would push changes to remote '%s' branch '%s'\n", remote, newBranchName)
+			fmt.Println(color.Yellowf("[DRYRUN] Would push changes to remote '%s' branch '%s'", remote, newBranchName))
 		}
 
 		if command.GitOptions.PullRequest == "GITHUB_CLI" {
-			fmt.Println("[DRYRUN] Would create GitHub pull request")
+			fmt.Println(color.Yellow("[DRYRUN] Would create GitHub pull request"))
 		}
 	}
 
@@ -379,10 +393,10 @@ func main() {
 			repver.Debugln("Deleted branch\n%s", output)
 		}
 	} else if command.GitOptions.ReturnToOriginalBranch && repver.DryRun {
-		fmt.Printf("[DRYRUN] Would switch back to original branch '%s'\n", originalBranchName)
+		fmt.Println(color.Yellowf("[DRYRUN] Would switch back to original branch '%s'", originalBranchName))
 
 		if command.GitOptions.DeleteBranch && command.GitOptions.CreateBranch {
-			fmt.Printf("[DRYRUN] Would delete branch '%s'\n", newBranchName)
+			fmt.Println(color.Yellowf("[DRYRUN] Would delete branch '%s'", newBranchName))
 		}
 	}
 }
@@ -451,14 +465,15 @@ func generateHelpMessage(config *repver.RepverConfig) string {
 	}
 
 	help.WriteString("OPTIONS:\n")
-	help.WriteString("  --debug    Enable debug output\n")
-	help.WriteString("  --dry-run  Show what would be changed without modifying files or performing git operations\n")
+	help.WriteString("  --debug      Enable debug output\n")
+	help.WriteString("  --dry-run    Show what would be changed without modifying files or performing git operations\n")
+	help.WriteString("  --no-color   Disable colored output (also respects NO_COLOR environment variable)\n")
 
 	return help.String()
 }
 
 func printErrorAndExit(errNum int, errMsg string, helpMsg ...string) {
-	fmt.Fprintf(os.Stderr, "Error (%d): %s\n", errNum, errMsg)
+	fmt.Fprintf(os.Stderr, "%s %s\n", color.BoldRed(fmt.Sprintf("Error (%d):", errNum)), errMsg)
 	if len(helpMsg) > 0 && helpMsg[0] != "" {
 		fmt.Fprintln(os.Stderr, "\n"+helpMsg[0])
 	}

@@ -7,6 +7,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/UnitVectorY-Labs/repver/internal/color"
 )
 
 type FileChange struct {
@@ -187,12 +189,12 @@ func (t *RepverTarget) ExecutePlan(plan *ExecutionPlan) (bool, error) {
 		return false, nil
 	}
 
-	fmt.Println("\nFILE CHANGES:")
-	fmt.Printf("  File: %s\n", plan.Path)
+	fmt.Println(color.Bold("\nFILE CHANGES:"))
+	fmt.Printf("  %s %s\n", color.Bold("File:"), color.Cyan(plan.Path))
 	for _, change := range plan.Changes {
-		fmt.Printf("  +- Line %d:\n", change.LineNumber)
-		fmt.Printf("  |  - %s\n", change.OldLine)
-		fmt.Printf("  |  + %s\n", change.NewLine)
+		fmt.Printf("  %s\n", color.Boldf("+- Line %d:", change.LineNumber))
+		fmt.Printf("  |  %s\n", color.Red("- "+change.OldLine))
+		fmt.Printf("  |  %s\n", color.Green("+ "+change.NewLine))
 	}
 	fmt.Println("  +-")
 
