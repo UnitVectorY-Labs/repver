@@ -9,14 +9,21 @@ import (
 	"strings"
 )
 
-// Execute performs the regex replacement on the file specified by Path.
-// It reads the file, applies the regex pattern, and writes back the modified content.
-// The values map contains the replacement values for named capture groups in the regex pattern.
-// The extractedGroups map contains named groups extracted from param patterns for use in transforms.
-// It returns true if the content was modified, false otherwise.
-// In dry run mode, it outputs the changes that would be made without modifying the file.
-// It returns an error if any issues occur during file reading, regex compilation, or writing.
-func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[string]string) (bool, error) {
+type FileChange struct {
+	LineNumber int
+	OldLine    string
+	NewLine    string
+}
+
+type ExecutionPlan struct {
+	Path            string
+	Modified        bool
+	ModifiedContent string
+	Changes         []FileChange
+}
+
+// Plan computes the file changes for a target without writing anything to disk.
+func (t *RepverTarget) Plan(values map[string]string, extractedGroups map[string]string) (*ExecutionPlan, error) {
 	Debugln("Processing file %s using pattern: %s", t.Path, t.Pattern)
 
 	// Read the file content
@@ -24,7 +31,7 @@ func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[str
 	content, err := os.ReadFile(t.Path)
 	if err != nil {
 		Debugln("Failed to read file: %v", err)
-		return false, err
+		return nil, err
 	}
 	Debugln("Read %d bytes from file", len(content))
 
@@ -33,7 +40,7 @@ func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[str
 	re, err := regexp.Compile(t.Pattern)
 	if err != nil {
 		Debugln("Invalid regex pattern: %v", err)
-		return false, err
+		return nil, err
 	}
 
 	// Get the named capture groups
@@ -71,14 +78,7 @@ func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[str
 	var modifiedLines []string
 	lineNum := 0
 	matchesFound := 0
-	contentModified := false
-
-	// Track changes for dry run mode
-	var changes []struct {
-		lineNumber int
-		oldLine    string
-		newLine    string
-	}
+	var changes []FileChange
 
 	for scanner.Scan() {
 		lineNum++
@@ -104,7 +104,7 @@ func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[str
 					replacement, exists := effectiveValues[name]
 					if !exists {
 						Debugln("Missing replacement value for group '%s'", name)
-						return false, fmt.Errorf("no replacement value for named group '%s'", name)
+						return nil, fmt.Errorf("no replacement value for named group '%s'", name)
 					}
 
 					// Find indices of this specific capture group in the modified line
@@ -124,14 +124,12 @@ func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[str
 
 				Debugln("Updated line: '%s'", modifiedLine)
 
-				// If line was changed, record it for dry run mode
 				if line != modifiedLine {
-					contentModified = true
-					changes = append(changes, struct {
-						lineNumber int
-						oldLine    string
-						newLine    string
-					}{lineNum, line, modifiedLine})
+					changes = append(changes, FileChange{
+						LineNumber: lineNum,
+						OldLine:    line,
+						NewLine:    modifiedLine,
+					})
 				}
 
 				modifiedLines = append(modifiedLines, modifiedLine)
@@ -148,7 +146,7 @@ func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[str
 
 	if err := scanner.Err(); err != nil {
 		Debugln("Error processing file: %v", err)
-		return false, err
+		return nil, err
 	}
 
 	if matchesFound == 0 {
@@ -165,44 +163,67 @@ func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[str
 		modifiedContent += "\n"
 	}
 
-	// Check if content was modified
-	if string(content) == modifiedContent {
+	plan := &ExecutionPlan{
+		Path:            t.Path,
+		Modified:        string(content) != modifiedContent,
+		ModifiedContent: modifiedContent,
+		Changes:         changes,
+	}
+	if !plan.Modified {
 		Debugln("No changes were made to the file content")
-		return false, nil
-	} else {
-		Debugln("File content was modified")
+		return plan, nil
 	}
 
-	// We always print the changes, this is the point of repver so we always want to see what is being changed
-	if len(changes) > 0 {
-		fmt.Println("\nFILE CHANGES:")
-		fmt.Printf("  File: %s\n", t.Path)
+	Debugln("File content was modified")
+	return plan, nil
+}
 
-		for _, change := range changes {
-			fmt.Printf("  +- Line %d:\n", change.lineNumber)
-			fmt.Printf("  |  - %s\n", change.oldLine)
-			fmt.Printf("  |  + %s\n", change.newLine)
-		}
-		fmt.Println("  +-")
-	} else {
-		fmt.Printf("\nFile: %s (no changes)\n", t.Path)
+// ExecutePlan applies a previously computed execution plan.
+func (t *RepverTarget) ExecutePlan(plan *ExecutionPlan) (bool, error) {
+	if plan == nil {
+		return false, fmt.Errorf("execution plan is nil")
+	}
+	if !plan.Modified {
 		return false, nil
 	}
 
-	// If in dry run mode, skip writing the file
+	fmt.Println("\nFILE CHANGES:")
+	fmt.Printf("  File: %s\n", plan.Path)
+	for _, change := range plan.Changes {
+		fmt.Printf("  +- Line %d:\n", change.LineNumber)
+		fmt.Printf("  |  - %s\n", change.OldLine)
+		fmt.Printf("  |  + %s\n", change.NewLine)
+	}
+	fmt.Println("  +-")
+
 	if DryRun {
 		Debugln("Dry run mode enabled, skipping file write")
-		return contentModified, nil
+		return true, nil
 	}
 
-	// Write the modified content back to the file
 	Debugln("Writing changes to %s", t.Path)
-	err = os.WriteFile(t.Path, []byte(modifiedContent), 0644)
+	err := os.WriteFile(t.Path, []byte(plan.ModifiedContent), 0644)
 	if err != nil {
 		Debugln("Failed to write file: %v", err)
 		return false, err
 	}
 	Debugln("Successfully updated file")
 
-	return contentModified, nil
+	return true, nil
+}
+
+// Execute performs the regex replacement on the file specified by Path.
+// It reads the file, applies the regex pattern, and writes back the modified content.
+// The values map contains the replacement values for named capture groups in the regex pattern.
+// The extractedGroups map contains named groups extracted from param patterns for use in transforms.
+// It returns true if the content was modified, false otherwise.
+// In dry run mode, it outputs the changes that would be made without modifying the file.
+// It returns an error if any issues occur during file reading, regex compilation, or writing.
+func (t *RepverTarget) Execute(values map[string]string, extractedGroups map[string]string) (bool, error) {
+	plan, err := t.Plan(values, extractedGroups)
+	if err != nil {
+		return false, err
+	}
+
+	return t.ExecutePlan(plan)
 }

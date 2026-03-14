@@ -11,6 +11,8 @@ The `repver` tool automates file updates and Git operations using commands defin
 
 To use the command, you must run it from the root of your repository where the `.repver` file is located.  If you configure Git operations, this is required to be the root of the Git repository as well.
 
+If every target file already contains the requested values, `repver` exits successfully as a no-op. In that case it reports that no updates are needed and skips all git operations such as branch creation, checkout, commit, and push.
+
 ## Usage
 
 ```bash

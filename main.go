@@ -111,11 +111,6 @@ func main() {
 		return
 	}
 
-	// If dry run mode is enabled, output that information
-	if repver.DryRun {
-		fmt.Println("DRY RUN MODE ENABLED")
-	}
-
 	// Decision: Command specified?
 	if repver.UserCommand == "" {
 		// Generate help message listing all available commands with their parameters
@@ -192,6 +187,35 @@ func main() {
 		}
 	}
 
+	// Evaluate all target changes before performing any git operations so a no-op
+	// leaves the repository untouched.
+	executionPlans := make([]*repver.ExecutionPlan, 0, len(command.Targets))
+	anyFileModified := false
+	commitFiles := []string{}
+	for _, target := range command.Targets {
+		plan, err := target.Plan(argumentValues, extractedGroups)
+		if err != nil {
+			printErrorAndExit(202, "Failed to evaluate command on target")
+		}
+
+		executionPlans = append(executionPlans, plan)
+		if plan.Modified {
+			anyFileModified = true
+			commitFiles = append(commitFiles, target.Path)
+		}
+	}
+
+	if !anyFileModified {
+		fmt.Println("No updates needed; target files already match the requested values.")
+		return
+	}
+
+	// If dry run mode is enabled, output that information only after confirming
+	// there is actual work to preview.
+	if repver.DryRun {
+		fmt.Println("DRY RUN MODE ENABLED")
+	}
+
 	// Decision: Git options specified?
 	useGit := command.GitOptions.GitOptionsSpecified()
 	if useGit && !repver.DryRun {
@@ -262,22 +286,13 @@ func main() {
 		fmt.Printf("[DRYRUN] Would create and switch to branch: %s\n", newBranchName)
 	}
 
-	// Decision: Has targets to update?
-	anyFileModified := false
-	commitFiles := []string{}
-
-	for _, target := range command.Targets {
-		// Process: Execute update to target
-		modified, err := target.Execute(argumentValues, extractedGroups)
+	for i, target := range command.Targets {
+		// Process: Execute the previously planned update to target
+		_, err := target.ExecutePlan(executionPlans[i])
 
 		// Decision: Execution successful?
 		if err != nil {
 			printErrorAndExit(202, "Failed to execute command on target")
-		}
-
-		if modified {
-			anyFileModified = true
-			commitFiles = append(commitFiles, target.Path)
 		}
 	}
 
