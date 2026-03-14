@@ -115,7 +115,8 @@ func main() {
 	// Process: Parse command line arguments
 	repver.ParseParams()
 
-	// Sync color state after full parse in case --no-color came through here
+	// Sync color state after full parse in case the pre-parse could not
+	// process --no-color (e.g. flag parsing stopped early on unknown flags).
 	if repver.NoColor {
 		color.Enabled = false
 	}
