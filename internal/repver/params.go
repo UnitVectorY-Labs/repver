@@ -8,6 +8,7 @@ import (
 
 var Debug bool
 var DryRun bool
+var NoColor bool
 var UserCommand string
 var Exists bool
 
@@ -17,11 +18,13 @@ func ParseParams() {
 	command := flag.String("command", "", "Command to execute")
 	dryRun := flag.Bool("dry-run", false, "Dry run mode - shows changes without applying them")
 	exists := flag.Bool("exists", false, "Check whether .repver exists and contains the specified command")
+	noColor := flag.Bool("no-color", false, "Disable colored output")
 
 	flag.Parse()
 
 	Debug = *debug
 	DryRun = *dryRun
+	NoColor = *noColor
 	UserCommand = *command
 	Exists = *exists
 }

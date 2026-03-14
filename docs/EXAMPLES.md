@@ -65,7 +65,7 @@ Use `--dry-run` to see what would be changed without making modifications:
 repver --command=goversion --param-version=1.26.0 --dry-run
 ```
 
-This displays the files that would be modified and the Git operations that would be performed.
+This displays the files that would be modified and the Git operations that would be performed. The output is colorized by default; pass `--no-color` or set the `NO_COLOR` environment variable to disable colors.
 
 ## Basic Version Update Without Parameter Validation
 
