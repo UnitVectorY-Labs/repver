@@ -1,0 +1,12 @@
+name: repver
+default_branch: main
+config:
+  description: "Automate batch replacement of simple strings, like version numbers, across multiple files and handle all Git steps with one command."
+  license: MIT
+  language: go
+  release: release-go
+  justfile: true
+  codecov: true
+  docs:
+    enabled: true
+    domain: repver.unitvectorylabs.com
