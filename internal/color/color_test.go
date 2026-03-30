@@ -83,3 +83,48 @@ func TestDisabledFormatFunctions(t *testing.T) {
 		t.Errorf("Boldf with Enabled=false = %q, want %q", got, want)
 	}
 }
+
+func TestYellowfFormatFunction(t *testing.T) {
+	Enabled = true
+
+	got := Yellowf("value: %d", 10)
+	want := "\033[33mvalue: 10\033[0m"
+	if got != want {
+		t.Errorf("Yellowf = %q, want %q", got, want)
+	}
+}
+
+func TestCyanfFormatFunction(t *testing.T) {
+	Enabled = true
+
+	got := Cyanf("path: %s", "/tmp")
+	want := "\033[36mpath: /tmp\033[0m"
+	if got != want {
+		t.Errorf("Cyanf = %q, want %q", got, want)
+	}
+}
+
+func TestAllFormatFunctionsDisabled(t *testing.T) {
+	Enabled = false
+	defer func() { Enabled = true }()
+
+	tests := []struct {
+		name     string
+		got      string
+		expected string
+	}{
+		{"Redf", Redf("test %d", 1), "test 1"},
+		{"Greenf", Greenf("test %s", "ok"), "test ok"},
+		{"Yellowf", Yellowf("test %s", "warn"), "test warn"},
+		{"Cyanf", Cyanf("test %s", "info"), "test info"},
+		{"Boldf", Boldf("test %s", "bold"), "test bold"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.got != tc.expected {
+				t.Errorf("%s with Enabled=false = %q, want %q", tc.name, tc.got, tc.expected)
+			}
+		})
+	}
+}
