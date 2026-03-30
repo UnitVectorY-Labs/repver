@@ -527,7 +527,7 @@ func TestCreateGitHubPullRequest_NoGH(t *testing.T) {
 	if err == nil {
 		// If gh is available and authenticated, the call might succeed (unlikely in tests),
 		// but we still want to exercise the code path.
-		t.Skip("gh CLI appears to be available and configured; skipping error test")
+		t.Skip("gh CLI is authenticated; skipping error path test as success is valid")
 	}
 	// Verify we get a meaningful error
 	if err != nil {

@@ -85,6 +85,8 @@ func TestDisabledFormatFunctions(t *testing.T) {
 }
 
 func TestYellowfFormatFunction(t *testing.T) {
+	origEnabled := Enabled
+	defer func() { Enabled = origEnabled }()
 	Enabled = true
 
 	got := Yellowf("value: %d", 10)
@@ -95,6 +97,8 @@ func TestYellowfFormatFunction(t *testing.T) {
 }
 
 func TestCyanfFormatFunction(t *testing.T) {
+	origEnabled := Enabled
+	defer func() { Enabled = origEnabled }()
 	Enabled = true
 
 	got := Cyanf("path: %s", "/tmp")
@@ -105,8 +109,9 @@ func TestCyanfFormatFunction(t *testing.T) {
 }
 
 func TestAllFormatFunctionsDisabled(t *testing.T) {
+	origEnabled := Enabled
+	defer func() { Enabled = origEnabled }()
 	Enabled = false
-	defer func() { Enabled = true }()
 
 	tests := []struct {
 		name     string
