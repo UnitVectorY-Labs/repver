@@ -71,6 +71,14 @@ For example, to run the `goversion` command shown above, use:
 repver --command=goversion --param-version=1.26.0
 ```
 
+## Version
+
+Use `repver --version` to print the application version in this format:
+
+```text
+repver version vX.Y.Z (goX.Y, os/arch)
+```
+
 ## Dependencies
 
 - Git commands utilize the git command line commands which must be installed and accessible with appropriate permissions to the repository
