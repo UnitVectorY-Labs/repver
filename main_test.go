@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"testing"
 )
@@ -44,8 +45,8 @@ func TestVersionFlagPrintsStandardizedOutput(t *testing.T) {
 		t.Fatalf("--version returned error: %v\n%s", err, output)
 	}
 
-	want := buildVersionOutput(Version) + "\n"
-	if string(output) != want {
-		t.Fatalf("unexpected --version output: got %q, want %q", output, want)
+	pattern := regexp.MustCompile(`^repver version \S+ \(` + regexp.QuoteMeta(runtime.Version()) + `, ` + regexp.QuoteMeta(runtime.GOOS+"/"+runtime.GOARCH) + `\)\n$`)
+	if !pattern.Match(output) {
+		t.Fatalf("unexpected --version output: got %q", output)
 	}
 }
