@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
+	"runtime"
 	"runtime/debug"
 	"sort"
 	"strings"
@@ -14,6 +16,19 @@ import (
 )
 
 var Version = "dev" // This will be set by the build systems to the release version
+
+const applicationName = "repver"
+
+var semverRe = regexp.MustCompile(`^\d+\.\d+\.\d+`)
+
+func buildVersionOutput(version string) string {
+	normalized := version
+	if semverRe.MatchString(normalized) && !strings.HasPrefix(normalized, "v") {
+		normalized = "v" + normalized
+	}
+
+	return fmt.Sprintf("%s version %s (%s, %s/%s)", applicationName, normalized, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+}
 
 // main is the entry point for the repver command-line tool.
 func main() {
@@ -53,7 +68,7 @@ func main() {
 
 	// Handle --version early
 	if *preVersion {
-		fmt.Println("Version:", Version)
+		fmt.Println(buildVersionOutput(Version))
 		return
 	}
 
@@ -122,7 +137,7 @@ func main() {
 	}
 
 	if *showVersion {
-		fmt.Println("Version:", Version)
+		fmt.Println(buildVersionOutput(Version))
 		return
 	}
 
