@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"regexp"
 	"runtime"
@@ -210,9 +211,7 @@ func main() {
 			if err != nil {
 				printErrorAndExit(109, fmt.Sprintf("Failed to extract groups from parameter '%s': %v", param.Name, err))
 			}
-			for k, v := range groups {
-				extractedGroups[k] = v
-			}
+			maps.Copy(extractedGroups, groups)
 			repver.Debugln("Extracted groups from param '%s': %v", param.Name, groups)
 		}
 	}

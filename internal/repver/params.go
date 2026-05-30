@@ -30,7 +30,7 @@ func ParseParams() {
 }
 
 // Debugln prints debug messages to stderr if Debug mode is enabled
-func Debugln(format string, args ...interface{}) {
+func Debugln(format string, args ...any) {
 	if Debug {
 		_, _ = fmt.Fprintf(os.Stderr, "[DEBUG] "+format+"\n", args...)
 	}
