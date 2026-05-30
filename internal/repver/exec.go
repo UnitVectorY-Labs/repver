@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"maps"
 	"os"
 	"regexp"
 	"strings"
@@ -56,9 +57,7 @@ func (t *RepverTarget) Plan(values map[string]string, extractedGroups map[string
 
 	// Prepare effective values: apply transforms if specified
 	effectiveValues := make(map[string]string)
-	for k, v := range values {
-		effectiveValues[k] = v
-	}
+	maps.Copy(effectiveValues, values)
 
 	// If transform is specified, apply it to get the replacement value
 	if t.Transform != "" && extractedGroups != nil {

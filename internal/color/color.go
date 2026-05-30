@@ -54,16 +54,16 @@ func Bold(s string) string { return wrap(bold, s) }
 func BoldRed(s string) string { return wrap(boldRed, s) }
 
 // Redf returns a red formatted string.
-func Redf(format string, a ...interface{}) string { return Red(fmt.Sprintf(format, a...)) }
+func Redf(format string, a ...any) string { return Red(fmt.Sprintf(format, a...)) }
 
 // Greenf returns a green formatted string.
-func Greenf(format string, a ...interface{}) string { return Green(fmt.Sprintf(format, a...)) }
+func Greenf(format string, a ...any) string { return Green(fmt.Sprintf(format, a...)) }
 
 // Yellowf returns a yellow formatted string.
-func Yellowf(format string, a ...interface{}) string { return Yellow(fmt.Sprintf(format, a...)) }
+func Yellowf(format string, a ...any) string { return Yellow(fmt.Sprintf(format, a...)) }
 
 // Cyanf returns a cyan formatted string.
-func Cyanf(format string, a ...interface{}) string { return Cyan(fmt.Sprintf(format, a...)) }
+func Cyanf(format string, a ...any) string { return Cyan(fmt.Sprintf(format, a...)) }
 
 // Boldf returns a bold formatted string.
-func Boldf(format string, a ...interface{}) string { return Bold(fmt.Sprintf(format, a...)) }
+func Boldf(format string, a ...any) string { return Bold(fmt.Sprintf(format, a...)) }
