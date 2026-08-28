@@ -327,6 +327,258 @@ func TestParamValidateValue(t *testing.T) {
 	}
 }
 
+func TestValidateConfig(t *testing.T) {
+	tests := []struct {
+		name   string
+		config RepverConfig
+		valid  bool
+	}{
+		{
+			"empty config",
+			RepverConfig{},
+			true,
+		},
+		{
+			"valid single command",
+			RepverConfig{
+				Commands: []RepverCommand{
+					{
+						Name: "test",
+						Targets: []RepverTarget{
+							{Path: "validate_test.go", Pattern: `^(?P<v>.*)$`},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"duplicate command names",
+			RepverConfig{
+				Commands: []RepverCommand{
+					{
+						Name: "test",
+						Targets: []RepverTarget{
+							{Path: "validate_test.go", Pattern: `^(?P<v>.*)$`},
+						},
+					},
+					{
+						Name: "test",
+						Targets: []RepverTarget{
+							{Path: "validate_test.go", Pattern: `^(?P<v>.*)$`},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.config.Validate()
+			if (err == nil) != tc.valid {
+				t.Errorf("expected valid: %v, got error: %v", tc.valid, err)
+			}
+		})
+	}
+}
+
+func TestValidateGitOptions(t *testing.T) {
+	tests := []struct {
+		name  string
+		git   RepverGit
+		valid bool
+	}{
+		{
+			"empty git options",
+			RepverGit{},
+			true,
+		},
+		{
+			"create branch with name",
+			RepverGit{CreateBranch: true, BranchName: "feature"},
+			true,
+		},
+		{
+			"create branch without name",
+			RepverGit{CreateBranch: true},
+			false,
+		},
+		{
+			"delete branch without create",
+			RepverGit{DeleteBranch: true},
+			false,
+		},
+		{
+			"commit with message",
+			RepverGit{Commit: true, CommitMessage: "test"},
+			true,
+		},
+		{
+			"commit without message",
+			RepverGit{Commit: true},
+			false,
+		},
+		{
+			"push with remote",
+			RepverGit{Push: true, Remote: "origin"},
+			true,
+		},
+		{
+			"push without remote",
+			RepverGit{Push: true},
+			false,
+		},
+		{
+			"return to original without create",
+			RepverGit{ReturnToOriginalBranch: true},
+			false,
+		},
+		{
+			"return to original with create",
+			RepverGit{CreateBranch: true, BranchName: "test", ReturnToOriginalBranch: true},
+			true,
+		},
+		{
+			"valid pull request GITHUB_CLI",
+			RepverGit{PullRequest: "GITHUB_CLI"},
+			true,
+		},
+		{
+			"valid pull request NO",
+			RepverGit{PullRequest: "NO"},
+			true,
+		},
+		{
+			"invalid pull request value",
+			RepverGit{PullRequest: "INVALID"},
+			false,
+		},
+		{
+			"all options set correctly",
+			RepverGit{
+				CreateBranch:           true,
+				BranchName:             "release",
+				DeleteBranch:           true,
+				Commit:                 true,
+				CommitMessage:          "release",
+				Push:                   true,
+				Remote:                 "origin",
+				PullRequest:            "GITHUB_CLI",
+				ReturnToOriginalBranch: true,
+			},
+			true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.git.Validate()
+			if (err == nil) != tc.valid {
+				t.Errorf("expected valid: %v, got error: %v", tc.valid, err)
+			}
+		})
+	}
+}
+
+func TestValidateTarget(t *testing.T) {
+	tests := []struct {
+		name   string
+		target RepverTarget
+		valid  bool
+	}{
+		{
+			"empty path",
+			RepverTarget{Path: "", Pattern: `^.*$`},
+			false,
+		},
+		{
+			"valid target",
+			RepverTarget{Path: "validate_test.go", Pattern: `^(?P<v>.*)$`},
+			true,
+		},
+		{
+			"non-existent file",
+			RepverTarget{Path: "nonexistent_file_abc123.txt", Pattern: `^(?P<v>.*)$`},
+			false,
+		},
+		{
+			"empty pattern",
+			RepverTarget{Path: "validate_test.go", Pattern: ""},
+			false,
+		},
+		{
+			"invalid pattern",
+			RepverTarget{Path: "validate_test.go", Pattern: `^[invalid$`},
+			false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.target.Validate()
+			if (err == nil) != tc.valid {
+				t.Errorf("expected valid: %v, got error: %v", tc.valid, err)
+			}
+		})
+	}
+}
+
+func TestValidateCommand(t *testing.T) {
+	tests := []struct {
+		name    string
+		command RepverCommand
+		valid   bool
+	}{
+		{
+			"empty name",
+			RepverCommand{Name: ""},
+			false,
+		},
+		{
+			"valid command no targets",
+			RepverCommand{Name: "test"},
+			true,
+		},
+		{
+			"valid command with target",
+			RepverCommand{
+				Name: "test",
+				Targets: []RepverTarget{
+					{Path: "validate_test.go", Pattern: `^(?P<v>.*)$`},
+				},
+			},
+			true,
+		},
+		{
+			"duplicate param names",
+			RepverCommand{
+				Name: "test",
+				Params: []RepverParam{
+					{Name: "version", Pattern: `^.*$`},
+					{Name: "version", Pattern: `^.*$`},
+				},
+			},
+			false,
+		},
+		{
+			"invalid command name",
+			RepverCommand{Name: "invalid-name"},
+			false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.command.Validate()
+			if (err == nil) != tc.valid {
+				t.Errorf("expected valid: %v, got error: %v", tc.valid, err)
+			}
+		})
+	}
+}
+
 func TestApplyTransform(t *testing.T) {
 	tests := []struct {
 		name     string
