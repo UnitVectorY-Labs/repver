@@ -2,10 +2,10 @@ package repver
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"maps"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -25,10 +25,46 @@ type ExecutionPlan struct {
 	Changes         []FileChange
 }
 
+// Plan composes targets in configuration order and returns one plan per path.
+// All changes are evaluated in memory before any files or git state are changed.
+func (c *RepverCommand) Plan(values map[string]string, extractedGroups map[string]string) ([]*ExecutionPlan, error) {
+	plans := make([]*ExecutionPlan, 0, len(c.Targets))
+	byPath := make(map[string]*ExecutionPlan)
+	originals := make(map[string]string)
+	for _, target := range c.Targets {
+		path := filepath.Clean(target.Path)
+		accumulated, exists := byPath[path]
+		var content string
+		if exists {
+			content = accumulated.ModifiedContent
+		} else {
+			data, err := os.ReadFile(target.Path)
+			if err != nil {
+				return nil, err
+			}
+			content = string(data)
+			originals[path] = content
+		}
+
+		plan, err := target.planContent(content, values, extractedGroups)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			accumulated.ModifiedContent = plan.ModifiedContent
+			accumulated.Changes = append(accumulated.Changes, plan.Changes...)
+		} else {
+			accumulated = plan
+			byPath[path] = accumulated
+			plans = append(plans, accumulated)
+		}
+		accumulated.Modified = accumulated.ModifiedContent != originals[path]
+	}
+	return plans, nil
+}
+
 // Plan computes the file changes for a target without writing anything to disk.
 func (t *RepverTarget) Plan(values map[string]string, extractedGroups map[string]string) (*ExecutionPlan, error) {
-	Debugln("Processing file %s using pattern: %s", t.Path, t.Pattern)
-
 	// Read the file content
 	Debugln("Reading file: %s", t.Path)
 	content, err := os.ReadFile(t.Path)
@@ -37,6 +73,13 @@ func (t *RepverTarget) Plan(values map[string]string, extractedGroups map[string
 		return nil, err
 	}
 	Debugln("Read %d bytes from file", len(content))
+
+	return t.planContent(string(content), values, extractedGroups)
+}
+
+// planContent computes a target's changes against the supplied file content.
+func (t *RepverTarget) planContent(content string, values map[string]string, extractedGroups map[string]string) (*ExecutionPlan, error) {
+	Debugln("Processing file %s using pattern: %s", t.Path, t.Pattern)
 
 	// Compile the regex pattern
 	Debugln("Compiling pattern: %s", t.Pattern)
@@ -75,7 +118,7 @@ func (t *RepverTarget) Plan(values map[string]string, extractedGroups map[string
 
 	// Process the file line by line
 	Debugln("Processing file contents")
-	scanner := bufio.NewScanner(bytes.NewReader(content))
+	scanner := bufio.NewScanner(strings.NewReader(content))
 	var modifiedLines []string
 	lineNum := 0
 	matchesFound := 0
@@ -166,7 +209,7 @@ func (t *RepverTarget) Plan(values map[string]string, extractedGroups map[string
 
 	plan := &ExecutionPlan{
 		Path:            t.Path,
-		Modified:        string(content) != modifiedContent,
+		Modified:        content != modifiedContent,
 		ModifiedContent: modifiedContent,
 		Changes:         changes,
 	}
