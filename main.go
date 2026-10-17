@@ -218,19 +218,16 @@ func main() {
 
 	// Evaluate all target changes before performing any git operations so a no-op
 	// leaves the repository untouched.
-	executionPlans := make([]*repver.ExecutionPlan, 0, len(command.Targets))
+	executionPlans, err := command.Plan(argumentValues, extractedGroups)
+	if err != nil {
+		printErrorAndExit(202, "Failed to evaluate command on target")
+	}
 	anyFileModified := false
 	commitFiles := []string{}
-	for _, target := range command.Targets {
-		plan, err := target.Plan(argumentValues, extractedGroups)
-		if err != nil {
-			printErrorAndExit(202, "Failed to evaluate command on target")
-		}
-
-		executionPlans = append(executionPlans, plan)
+	for _, plan := range executionPlans {
 		if plan.Modified {
 			anyFileModified = true
-			commitFiles = append(commitFiles, target.Path)
+			commitFiles = append(commitFiles, plan.Path)
 		}
 	}
 
@@ -315,9 +312,10 @@ func main() {
 		fmt.Println(color.Yellowf("[DRYRUN] Would create and switch to branch: %s", newBranchName))
 	}
 
-	for i, target := range command.Targets {
+	for _, plan := range executionPlans {
 		// Process: Execute the previously planned update to target
-		_, err := target.ExecutePlan(executionPlans[i])
+		target := repver.RepverTarget{Path: plan.Path}
+		_, err := target.ExecutePlan(plan)
 
 		// Decision: Execution successful?
 		if err != nil {
