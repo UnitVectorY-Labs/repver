@@ -110,9 +110,9 @@ func AddAndCommitFiles(fileNames []string, commitMessage string) (string, error)
 // Returns the command output for logging purposes.
 func PushChanges(remote string, branch string) (string, error) {
 	cmd := exec.Command("git", "push", remote, branch)
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("error pushing changes to %s/%s: %w", remote, branch, err)
+		return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(string(output)))
 	}
 	return string(output), nil
 }
@@ -126,4 +126,13 @@ func DeleteLocalBranch(branchName string) (string, error) {
 		return "", fmt.Errorf("error deleting local branch %s: %w", branchName, err)
 	}
 	return string(output), nil
+}
+
+// GetCommitSHA retrieves the abbreviated SHA of the current commit.
+func GetCommitSHA() (string, error) {
+	output, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
 }
