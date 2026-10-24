@@ -521,18 +521,13 @@ func TestPushChanges_InvalidRemote(t *testing.T) {
 }
 
 func TestCreateGitHubPullRequest_NoGH(t *testing.T) {
-	// This test verifies error handling when gh CLI is not available or
-	// not configured. In CI/test environments, gh is typically not authenticated.
+	// Ensure the error path is independent of installed tools and credentials.
+	t.Setenv("PATH", t.TempDir())
 	_, err := CreateGitHubPullRequest()
 	if err == nil {
-		// If gh is available and authenticated, the call might succeed (unlikely in tests),
-		// but we still want to exercise the code path.
-		t.Skip("gh CLI is authenticated; skipping error path test as success is valid")
+		t.Fatal("expected error when gh CLI is unavailable")
 	}
-	// Verify we get a meaningful error
-	if err != nil {
-		if !strings.Contains(err.Error(), "error creating GitHub pull request") {
-			t.Errorf("expected error about creating PR, got: %v", err)
-		}
+	if !strings.Contains(err.Error(), "error creating GitHub pull request") {
+		t.Errorf("expected error about creating PR, got: %v", err)
 	}
 }
