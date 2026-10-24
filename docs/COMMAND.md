@@ -100,3 +100,28 @@ NO_COLOR=1 repver --command=goversion --param-version=1.26.0
 ```
 
 The `NO_COLOR` convention follows the [no-color.org](https://no-color.org/) standard.
+
+### Git action output
+
+Normal runs report completed git actions to stderr without requiring `--debug`:
+
+```text
+Created branch repver/mermaid-11.17.0
+Committed a1b2c3d: Update mermaid version to v11.17.0
+Pushed origin/repver/mermaid-11.17.0
+Created pull request: https://github.com/UnitVectorY-Labs/repver/pull/147
+Switched to main
+Deleted local branch repver/mermaid-11.17.0
+```
+
+The SHA and URL above are illustrative. Each line appears only after its action
+succeeds, and only configured actions are reported. The existing file diff stays
+on stdout and appears between branch creation and commit. Dry-run previews and
+no-op output are unchanged. Use the exit status to determine overall success;
+there is no additional success banner. `--debug` adds internal details and captured
+subprocess output.
+
+If pushing fails, the error includes Git's diagnostic and identifies the commit
+and branch left behind. No push, pull request, or cleanup success is reported for
+operations that did not complete. Deleting a local branch does not delete the
+remote branch backing the pull request.

@@ -298,6 +298,7 @@ func main() {
 				printErrorAndExit(201, "Failed to create new branch")
 			}
 			repver.Debugln("Created and switched to new branch\n%s", output)
+			fmt.Fprintf(os.Stderr, "Created branch %s\n", newBranchName)
 		}
 	} else if useGit && repver.DryRun && command.GitOptions.CreateBranch {
 		// Process: Get the current branch name
@@ -337,6 +338,11 @@ func main() {
 			printErrorAndExit(505, "Internal error could not add and commit files")
 		}
 		repver.Debugln("Changes committed successfully\n%s", output)
+		commitSHA, err := git.GetCommitSHA()
+		if err != nil {
+			printErrorAndExit(505, "Changes committed, but failed to read commit SHA")
+		}
+		fmt.Fprintf(os.Stderr, "Committed %s: %s\n", commitSHA, commitMessage)
 
 		// Decision: Push changes to remote?
 		if command.GitOptions.Push && newBranchName != "" {
@@ -349,9 +355,10 @@ func main() {
 			output, err = git.PushChanges(remote, newBranchName)
 			if err != nil {
 				// This error isn't in the flowchart because we previously checked we are in a git repo
-				printErrorAndExit(506, "Internal error failed to push changes")
+				printErrorAndExit(506, fmt.Sprintf("Failed to push %s/%s: %v\nCommit %s remains on branch %s", remote, newBranchName, err, commitSHA, newBranchName))
 			}
 			repver.Debugln("Changes pushed successfully\n%s", output)
+			fmt.Fprintf(os.Stderr, "Pushed %s/%s\n", remote, newBranchName)
 
 			// Decision: Create pull request?
 			if command.GitOptions.PullRequest == "GITHUB_CLI" {
@@ -360,6 +367,7 @@ func main() {
 					printErrorAndExit(508, "Failed to create GitHub pull request")
 				}
 				repver.Debugln("Created GitHub pull request\n%s", output)
+				fmt.Fprintf(os.Stderr, "Created pull request: %s\n", strings.TrimSpace(output))
 			}
 		}
 	} else if command.GitOptions.Commit && repver.DryRun {
@@ -393,6 +401,7 @@ func main() {
 			printErrorAndExit(507, "Internal error failed to switch back to original branch")
 		}
 		repver.Debugln("Returned to original branch\n%s", output)
+		fmt.Fprintf(os.Stderr, "Switched to %s\n", originalBranchName)
 
 		// Decision: Delete new branch?
 		if command.GitOptions.DeleteBranch && command.GitOptions.CreateBranch {
@@ -404,6 +413,7 @@ func main() {
 				printErrorAndExit(509, "Internal error failed to delete new branch")
 			}
 			repver.Debugln("Deleted branch\n%s", output)
+			fmt.Fprintf(os.Stderr, "Deleted local branch %s\n", newBranchName)
 		}
 	} else if command.GitOptions.ReturnToOriginalBranch && repver.DryRun {
 		fmt.Println(color.Yellowf("[DRYRUN] Would switch back to original branch '%s'", originalBranchName))
