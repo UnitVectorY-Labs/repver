@@ -1,9 +1,13 @@
 title: repver
 description: "Automate batch replacement of simple strings, like version numbers, across multiple files and handle all Git steps with one command."
 
-remote_theme: UnitVectorY-Labs/uvy-docs-theme@v0.2.0
+remote_theme: UnitVectorY-Labs/uvy-docs-theme@v0.4.0
 plugins:
   - jekyll-remote-theme
+
+uvy_docs:
+  license: "MIT License"
+  license_url: "https://github.com/UnitVectorY-Labs/repver/blob/main/LICENSE"
 
 callouts:
   highlight:
