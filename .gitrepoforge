@@ -9,9 +9,6 @@ config:
   justfile: true
   status: active
   release_github: true
-  codecov:
-    enabled: true
-    token: uW5nCgpegM
   docs:
     enabled: true
     domain: repver.unitvectorylabs.com
